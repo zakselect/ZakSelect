@@ -1,0 +1,3624 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zak Select - Control de Ropa & Puesto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#070a0e',
+            panel: '#0f141e',
+            subpanel: '#151c2a',
+            neonGreen: '#00ff66',
+            neonGreenDark: '#05c74f',
+            electricCyan: '#00e5ff',
+            solarGold: '#ffb703',
+            flameOrange: '#fb8500',
+            violetNeon: '#a855f7',
+            roseNeon: '#ff0055'
+          },
+          boxShadow: {
+            'neon-green': '0 0 20px -3px rgba(0, 255, 102, 0.35)',
+            'neon-cyan': '0 0 20px -3px rgba(0, 229, 255, 0.35)',
+            'neon-gold': '0 0 20px -3px rgba(255, 183, 3, 0.35)',
+            'dock': '0 -8px 25px -5px rgba(0, 0, 0, 0.75)'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #070a0e;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .glow-green {
+      text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+    }
+    .glow-cyan {
+      text-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+    }
+    .battery-saver {
+      background-color: #000000 !important;
+      color: #e2e8f0 !important;
+    }
+    .battery-saver .bg-panel, .battery-saver .bg-subpanel {
+      background-color: #050505 !important;
+      border-color: #222222 !important;
+      box-shadow: none !important;
+    }
+    .battery-saver * {
+      animation: none !important;
+      transition: none !important;
+    }
+    .outdoor-mode {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+      filter: contrast(150%) brightness(120%);
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- TOP BAR -->
+  <header class="sticky top-0 z-40 bg-panel/90 backdrop-blur-xl border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-neonGreen to-electricCyan flex items-center justify-center text-black font-black text-xl shadow-neon-green">
+        Z
+      </div>
+      <div>
+        <div class="flex items-center space-x-1.5">
+          <h1 class="text-base font-black tracking-wider leading-none text-white">ZAK</h1>
+          <span class="text-xs font-black tracking-widest text-neonGreen px-1.5 py-0.5 rounded bg-neonGreen/10 border border-neonGreen/30 glow-green">SELECT</span>
+        </div>
+        <div class="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5 font-medium">
+          <span class="inline-block w-2 h-2 rounded-full bg-neonGreen animate-pulse shadow-[0_0_8px_#00ff66]"></span>
+          <span id="plazaBadge" class="text-slate-300">Playas</span>
+          <span>•</span>
+          <span id="relojTop" class="text-slate-400">12:00 PM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="flex items-center space-x-1.5">
+      <select id="selectPlazaActiva" onchange="cambiarPlaza(this.value)" class="text-xs bg-subpanel border border-slate-700/80 rounded-xl px-2 py-1.5 text-slate-200 font-bold focus:border-neonGreen focus:outline-none">
+        <option value="Playas">Playas</option>
+        <option value="Alemán">Alemán</option>
+        <option value="Salvatierra">Salvatierra</option>
+        <option value="Internet / Entrega">Venta Internet</option>
+      </select>
+
+      <button onclick="toggleBatterySaver()" id="btnBattery" title="Ahorro Batería OLED" class="w-8 h-8 rounded-xl bg-subpanel border border-slate-700 flex items-center justify-center text-slate-400 active:scale-90">
+        <i class="fa-solid fa-bolt text-xs"></i>
+      </button>
+
+      <button onclick="abrirModalConfig()" title="Configuración" class="w-8 h-8 rounded-xl bg-subpanel border border-neonGreen/30 flex items-center justify-center text-neonGreen active:scale-90">
+        <i class="fa-solid fa-sliders text-xs"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="flex-1 pb-24 overflow-y-auto custom-scroll p-4 max-w-lg mx-auto w-full">
+
+    <!-- TAB 1: ROPA / INVENTARIO -->
+    <section id="tab-inventario" class="space-y-3.5">
+      
+      <!-- RESUMEN DETALLADO POR PERSONA CON EMOJIS (TARJETA PRINCIPAL) -->
+      <div class="bg-gradient-to-br from-panel via-subpanel to-panel border border-neonGreen/30 rounded-3xl p-3.5 space-y-2.5 shadow-neon-green relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-base">📊</span>
+            <h2 class="text-xs font-black uppercase tracking-wider text-white">Resumen de Inventario en Puesto</h2>
+          </div>
+          <button onclick="copiarResumenEmojis()" class="py-1 px-2.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-xl text-[10px] font-black active:scale-95 flex items-center gap-1 hover:bg-neonGreen hover:text-black transition-all">
+            <i class="fa-solid fa-copy"></i> Copiar Texto
+          </button>
+        </div>
+
+        <!-- Tarjetas dinámicas de conteo y desglose por persona -->
+        <div id="contenedorResumenEmojis" class="space-y-1.5 text-xs">
+          <!-- Render dinámico con conteo y tallas de Zak, Ema y Miguel -->
+        </div>
+
+        <!-- Botones de Auditoría Rápida y Catálogo -->
+        <div class="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+          <button onclick="abrirAuditoriaPerchero()" class="py-2 px-2.5 bg-subpanel border border-slate-700 text-slate-200 font-black rounded-xl active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-list-check text-electricCyan"></i> Contar Perchero
+          </button>
+          <button onclick="abrirModalCatalogo()" class="py-2 px-2.5 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black rounded-xl active:scale-95 shadow-neon-green flex items-center justify-center gap-1.5">
+            <i class="fa-brands fa-whatsapp"></i> Armar Catálogo
+          </button>
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-neonGreen text-xs"></i>
+        <input type="text" id="busquedaInventario" oninput="filtrarInventario()" placeholder="Buscar marca, prenda, color, talla..." class="w-full bg-panel border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-neonGreen focus:ring-1 focus:ring-neonGreen focus:outline-none">
+      </div>
+
+      <!-- Filtro Dueño -->
+      <div class="flex space-x-2 overflow-x-auto pb-1 text-xs custom-scroll">
+        <button onclick="filtrarDueno('todos')" class="btn-filter px-3.5 py-1.5 rounded-xl font-black bg-gradient-to-r from-neonGreen to-neonGreenDark text-black shadow-neon-green" data-dueno="todos">
+          Todos (<span id="countTotal">0</span>)
+        </button>
+        <button onclick="filtrarDueno('Zak')" class="btn-filter px-3.5 py-1.5 rounded-xl font-bold bg-subpanel text-electricCyan border border-electricCyan/30" data-dueno="Zak">
+          Mío (Zak)
+        </button>
+        <button onclick="filtrarDueno('Ema')" class="btn-filter px-3.5 py-1.5 rounded-xl font-bold bg-subpanel text-solarGold border border-solarGold/30" data-dueno="Ema">
+          Ema
+        </button>
+        <button onclick="filtrarDueno('Miguel')" class="btn-filter px-3.5 py-1.5 rounded-xl font-bold bg-subpanel text-emerald-400 border border-emerald-400/30" data-dueno="Miguel">
+          Miguel
+        </button>
+      </div>
+
+      <!-- Subfiltros de estado & Botón de Pedido Multipieza -->
+      <div class="flex items-center space-x-2">
+        <div class="flex-1 flex items-center justify-between text-[11px] bg-panel/60 p-2.5 rounded-xl border border-slate-800/80">
+          <span onclick="filtrarEstado('disponible')" class="cursor-pointer font-black text-neonGreen underline" id="badgeFiltroDisp">
+            En Puesto (<span id="countDisp">0</span>)
+          </span>
+          <span class="text-slate-600">|</span>
+          <span onclick="filtrarEstado('apartado')" class="cursor-pointer font-medium text-slate-400 hover:text-white" id="badgeFiltroApart">
+            Apartados / Entregas (<span id="countApart">0</span>)
+          </span>
+          <span class="text-slate-600">|</span>
+          <span onclick="filtrarEstado('vendido')" class="cursor-pointer font-medium text-slate-400 hover:text-white" id="badgeFiltroVend">
+            Vendidas (<span id="countVend">0</span>)
+          </span>
+        </div>
+        <button onclick="toggleModoPedido()" id="btnModoPedido" title="Apartar varias piezas para una entrega" class="py-2.5 px-3 bg-solarGold/15 text-solarGold border border-solarGold/40 rounded-xl text-xs font-black active:scale-95 flex items-center gap-1.5 shadow-sm hover:bg-solarGold hover:text-black transition-all">
+          <i class="fa-solid fa-boxes-packing"></i> + Pedido
+        </button>
+      </div>
+
+      <!-- Barra Flotante de Selección de Pedido Multipieza -->
+      <div id="barPedidoMultipieza" class="hidden sticky top-14 z-30 bg-panel/95 border-2 border-solarGold/60 rounded-2xl p-3 shadow-2xl backdrop-blur-xl flex items-center justify-between animate-pulse-short">
+        <div>
+          <span class="text-xs font-black text-solarGold block" id="txtConteoPedido">0 prendas seleccionadas</span>
+          <span class="text-[10px] text-slate-300 font-bold" id="txtMontoPedido">Total: $0 MXN</span>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <button onclick="cancelarModoPedido()" class="px-2.5 py-1.5 bg-subpanel text-slate-300 border border-slate-700 text-xs rounded-xl font-bold active:scale-95">
+            Cancelar
+          </button>
+          <button onclick="abrirModalCrearPedido()" class="px-3 py-1.5 bg-solarGold text-black font-black text-xs rounded-xl shadow-neon-gold active:scale-95 flex items-center gap-1">
+            <i class="fa-solid fa-check"></i> Armar Pedido
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid de Prendas -->
+      <div id="gridInventario" class="grid grid-cols-2 gap-3"></div>
+    </section>
+
+    <!-- TAB 2: ALTA DE PRENDA -->
+    <section id="tab-registro" class="hidden space-y-4">
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-4 shadow-xl">
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-lg bg-neonGreen/10 border border-neonGreen/30 flex items-center justify-center text-neonGreen">
+              <i class="fa-solid fa-shirt text-xs"></i>
+            </div>
+            <h2 class="text-xs font-black uppercase tracking-wider text-white">Registrar Prenda Nueva</h2>
+          </div>
+          <span class="text-[10px] font-bold text-neonGreen bg-neonGreen/10 px-2 py-0.5 rounded-full border border-neonGreen/20">Alta Rápida</span>
+        </div>
+
+        <!-- 1. Captura de Fotos (Frente, Reverso, Etiqueta) -->
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Frente -->
+          <div class="space-y-1.5 text-center">
+            <span class="text-[10px] text-slate-400 block font-black tracking-wider">FRENTE</span>
+            <div class="h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-subpanel flex flex-col items-center justify-center overflow-hidden relative group">
+              <img id="previewFoto1" class="hidden w-full h-full object-cover">
+              <div id="iconFoto1" class="text-center p-1 text-slate-500">
+                <i class="fa-solid fa-camera text-base text-neonGreen/70"></i>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <button type="button" onclick="document.getElementById('camFoto1').click()" class="py-1.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-lg text-[9px] font-black active:scale-95 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-camera"></i> Foto
+              </button>
+              <button type="button" onclick="document.getElementById('galFoto1').click()" class="py-1.5 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-images"></i> Álbum
+              </button>
+            </div>
+            <input type="file" id="camFoto1" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(this, 'previewFoto1', 'iconFoto1')">
+            <input type="file" id="galFoto1" accept="image/*,image/jpeg,image/png,image/webp" class="hidden" onchange="procesarFoto(this, 'previewFoto1', 'iconFoto1')">
+          </div>
+
+          <!-- Reverso -->
+          <div class="space-y-1.5 text-center">
+            <span class="text-[10px] text-slate-400 block font-black tracking-wider">REVERSO</span>
+            <div class="h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-subpanel flex flex-col items-center justify-center overflow-hidden relative group">
+              <img id="previewFoto2" class="hidden w-full h-full object-cover">
+              <div id="iconFoto2" class="text-center p-1 text-slate-500">
+                <i class="fa-solid fa-camera text-base text-neonGreen/70"></i>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <button type="button" onclick="document.getElementById('camFoto2').click()" class="py-1.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-lg text-[9px] font-black active:scale-95 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-camera"></i> Foto
+              </button>
+              <button type="button" onclick="document.getElementById('galFoto2').click()" class="py-1.5 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-images"></i> Álbum
+              </button>
+            </div>
+            <input type="file" id="camFoto2" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(this, 'previewFoto2', 'iconFoto2')">
+            <input type="file" id="galFoto2" accept="image/*,image/jpeg,image/png,image/webp" class="hidden" onchange="procesarFoto(this, 'previewFoto2', 'iconFoto2')">
+          </div>
+
+          <!-- Etiqueta -->
+          <div class="space-y-1.5 text-center">
+            <span class="text-[10px] text-slate-400 block font-black tracking-wider">ETIQUETA</span>
+            <div class="h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-subpanel flex flex-col items-center justify-center overflow-hidden relative group">
+              <img id="previewFoto3" class="hidden w-full h-full object-cover">
+              <div id="iconFoto3" class="text-center p-1 text-slate-500">
+                <i class="fa-solid fa-tag text-base text-neonGreen/70"></i>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <button type="button" onclick="document.getElementById('camFoto3').click()" class="py-1.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-lg text-[9px] font-black active:scale-95 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-camera"></i> Foto
+              </button>
+              <button type="button" onclick="document.getElementById('galFoto3').click()" class="py-1.5 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-images"></i> Álbum
+              </button>
+            </div>
+            <input type="file" id="camFoto3" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(this, 'previewFoto3', 'iconFoto3')">
+            <input type="file" id="galFoto3" accept="image/*,image/jpeg,image/png,image/webp" class="hidden" onchange="procesarFoto(this, 'previewFoto3', 'iconFoto3')">
+          </div>
+        </div>
+
+        <!-- 2. Dueño -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">¿A QUIÉN PERTENECE?</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="seleccionarDuenoAlta('Zak')" id="btnAltaZak" class="btn-dueno-alta py-2 rounded-xl font-black text-xs border border-electricCyan bg-electricCyan/20 text-electricCyan shadow-neon-cyan">
+              Zak (Mío)
+            </button>
+            <button type="button" onclick="seleccionarDuenoAlta('Ema')" id="btnAltaEma" class="btn-dueno-alta py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">
+              Ema
+            </button>
+            <button type="button" onclick="seleccionarDuenoAlta('Miguel')" id="btnAltaMiguel" class="btn-dueno-alta py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">
+              Miguel
+            </button>
+          </div>
+        </div>
+
+        <!-- 2.1 Sexo / Género -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">GÉNERO / PÚBLICO</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="seleccionarGeneroAlta('Hombre')" id="btnGenHombre" class="py-2 rounded-xl font-black text-xs border border-electricCyan bg-electricCyan/20 text-electricCyan shadow-neon-cyan active:scale-95">
+              👨 Hombre
+            </button>
+            <button type="button" onclick="seleccionarGeneroAlta('Mujer')" id="btnGenMujer" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400 active:scale-95">
+              👩 Mujer
+            </button>
+            <button type="button" onclick="seleccionarGeneroAlta('Unisex')" id="btnGenUnisex" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400 active:scale-95">
+              🚻 Unisex
+            </button>
+          </div>
+          <input type="hidden" id="altaGeneroSeleccionado" value="Hombre">
+        </div>
+
+        <!-- 3. Selección Rápida de Marca -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">MARCA (1 TOQUE)</label>
+            <button type="button" onclick="abrirModalNuevaMarca()" class="text-[10px] text-neonGreen font-black hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-plus-circle"></i> + Nueva Marca
+            </button>
+          </div>
+          <div id="contenedorMarcasAlta" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scroll p-1.5 bg-subpanel/80 rounded-2xl border border-slate-800"></div>
+          <input type="hidden" id="altaMarcaSeleccionada" value="">
+        </div>
+
+        <!-- 4. Condición de Prenda -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">CONDICIÓN</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="seleccionarCondicion('Nuevo')" id="btnCondNuevo" class="py-2 rounded-xl font-black text-xs border border-neonGreen bg-neonGreen/15 text-neonGreen shadow-neon-green">
+              ✨ Nuevo
+            </button>
+            <button type="button" onclick="seleccionarCondicion('Como nuevo')" id="btnCondComoNuevo" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">
+              👌 Como nuevo
+            </button>
+            <button type="button" onclick="seleccionarCondicion('Seminuevo')" id="btnCondSeminuevo" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">
+              🏷️ Seminuevo
+            </button>
+          </div>
+          <input type="hidden" id="altaCondicionSeleccionada" value="Nuevo">
+        </div>
+
+        <!-- 5. Tallas -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">TALLA</label>
+          <div class="grid grid-cols-7 gap-1" id="contenedorTallasAlta">
+            <button type="button" onclick="seleccionarTallaAlta('XS')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">XS</button>
+            <button type="button" onclick="seleccionarTallaAlta('S')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">S</button>
+            <button type="button" onclick="seleccionarTallaAlta('M')" class="btn-talla py-2 rounded-xl font-black text-xs border border-neonGreen bg-neonGreen/15 text-neonGreen">M</button>
+            <button type="button" onclick="seleccionarTallaAlta('L')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">L</button>
+            <button type="button" onclick="seleccionarTallaAlta('XL')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">XL</button>
+            <button type="button" onclick="seleccionarTallaAlta('XXL')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">XXL</button>
+            <button type="button" onclick="seleccionarTallaAlta('Uni')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">Uni</button>
+          </div>
+          <input type="hidden" id="altaTallaSeleccionada" value="M">
+        </div>
+
+        <!-- 6. Precios & Detalle Opcional -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">PRECIO VENTA ($)</label>
+            <input type="number" id="altaPrecio" placeholder="$ 250" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-base font-black text-neonGreen placeholder-slate-600 focus:border-neonGreen focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">COSTO PROPIO ($)</label>
+            <input type="number" id="altaCosto" placeholder="Opcional" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-300 placeholder-slate-600 focus:border-slate-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">DETALLE / TIPO DE PRENDA <span class="text-slate-500 font-normal lowercase">(opcional)</span></label>
+          <input type="text" id="altaDesc" placeholder="Opcional - Ej. Short deportivo con logo reflejante..." class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:border-neonGreen focus:outline-none">
+        </div>
+
+        <button onclick="guardarPrendaNueva()" class="w-full py-3.5 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-sm rounded-2xl shadow-neon-green active:scale-95 transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus-circle text-base"></i> GUARDAR EN INVENTARIO
+        </button>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: BUSCADOR POR FOTO -->
+    <section id="tab-buscador" class="hidden space-y-4">
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-4 shadow-xl">
+        <div class="flex items-center space-x-2 border-b border-slate-800 pb-3">
+          <div class="w-7 h-7 rounded-lg bg-violetNeon/15 border border-violetNeon/40 flex items-center justify-center text-violetNeon">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+          </div>
+          <div>
+            <h2 class="text-xs font-black uppercase tracking-wider text-white">Identificador de Prendas Sin Etiqueta</h2>
+            <p class="text-[10px] text-slate-400">Escanea o elige foto para ver de quién es y cobrarla directo</p>
+          </div>
+        </div>
+
+        <div class="h-36 rounded-2xl border-2 border-dashed border-violetNeon/30 bg-subpanel/50 flex flex-col items-center justify-center overflow-hidden relative">
+          <img id="previewBuscarFoto" class="hidden w-full h-full object-cover">
+          <div id="iconBuscarFoto" class="text-center space-y-1">
+            <i class="fa-solid fa-camera-retro text-2xl text-violetNeon"></i>
+            <span class="block text-xs font-bold text-slate-300">Toma foto o selecciona de galería</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="document.getElementById('camBuscarFoto').click()" class="py-2.5 px-3 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black rounded-xl text-xs font-black active:scale-95 shadow-neon-green flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-camera"></i> Tomar Foto
+          </button>
+          <button type="button" onclick="document.getElementById('galBuscarFoto').click()" class="py-2.5 px-3 bg-subpanel text-slate-200 border border-slate-700 rounded-xl text-xs font-bold active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-images"></i> Elegir de Galería
+          </button>
+        </div>
+
+        <input type="file" id="camBuscarFoto" accept="image/*" capture="environment" class="hidden" onchange="procesarFotoBusqueda(this)">
+        <input type="file" id="galBuscarFoto" accept="image/*" class="hidden" onchange="procesarFotoBusqueda(this)">
+
+        <div id="resultadoBusquedaIA" class="hidden p-3 rounded-2xl bg-subpanel border border-slate-800 space-y-2"></div>
+      </div>
+
+      <!-- Gastos del Puesto -->
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-3 shadow-xl">
+        <h3 class="text-xs font-black uppercase tracking-wider text-solarGold flex items-center gap-1.5">
+          <i class="fa-solid fa-gas-pump"></i> Gastos del Puesto (Plaza, Gasolina, Comida)
+        </h3>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <input type="text" id="gastoConcepto" placeholder="Ej. Cuota Plaza" class="bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <input type="number" id="gastoMonto" placeholder="$ Monto" class="bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-bold">
+        </div>
+        <button onclick="registrarGastoPuesto()" class="w-full py-2 bg-solarGold/15 text-solarGold border border-solarGold/30 rounded-xl font-black text-xs active:scale-95">
+          + REGISTRAR GASTO
+        </button>
+        <div id="listaGastos" class="space-y-1 text-xs max-h-32 overflow-y-auto custom-scroll"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CUENTAS, CORTE & ESTADÍSTICAS -->
+    <section id="tab-cuentas" class="hidden space-y-4">
+      
+      <!-- BOTÓN CORTE DIARIO DEL PUESTO -->
+      <div class="bg-gradient-to-r from-neonGreen/20 via-panel to-panel border border-neonGreen/40 rounded-3xl p-4 shadow-neon-green flex items-center justify-between">
+        <div>
+          <span class="text-xs font-black text-neonGreen uppercase block tracking-wider">Cierre de Puesto</span>
+          <p class="text-[10px] text-slate-400">Calcula tu ganancia del día sin afectar adeudos de otros</p>
+        </div>
+        <button onclick="abrirCorteDelDia()" class="py-2.5 px-3.5 bg-neonGreen text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95 flex items-center gap-1.5">
+          <i class="fa-solid fa-calculator"></i> Corte Diario
+        </button>
+      </div>
+
+      <!-- TARJETAS DE SALDO PERMANENTE (EMA Y MIGUEL) -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Ema -->
+        <div class="bg-panel border border-solarGold/30 rounded-3xl p-3.5 space-y-2 shadow-neon-gold">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black text-solarGold uppercase tracking-wider">A EMA</span>
+            <i class="fa-solid fa-hand-holding-dollar text-solarGold text-xs"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-bold">Por Liquidar:</span>
+            <span id="deudaEma" class="text-2xl font-black text-solarGold">$0</span>
+          </div>
+          <button onclick="enviarCorteWhatsApp('Ema')" class="w-full py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 active:scale-95">
+            <i class="fa-brands fa-whatsapp"></i> Reporte WhatsApp
+          </button>
+        </div>
+
+        <!-- Miguel -->
+        <div class="bg-panel border border-emerald-500/30 rounded-3xl p-3.5 space-y-2 shadow-neon-green">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black text-emerald-400 uppercase tracking-wider">A MIGUEL</span>
+            <i class="fa-solid fa-hand-holding-dollar text-emerald-400 text-xs"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-bold">Por Liquidar:</span>
+            <span id="deudaMiguel" class="text-2xl font-black text-emerald-400">$0</span>
+          </div>
+          <button onclick="enviarCorteWhatsApp('Miguel')" class="w-full py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 active:scale-95">
+            <i class="fa-brands fa-whatsapp"></i> Reporte WhatsApp
+          </button>
+        </div>
+      </div>
+
+            <!-- BITÁCORA E HISTORIAL DE VENTAS POR CALENDARIO (UNIVERSAL / INDIVIDUAL) -->
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-3.5 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-lg bg-electricCyan/15 border border-electricCyan/40 flex items-center justify-center text-electricCyan">
+              <i class="fa-solid fa-calendar-days text-xs"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-white">Historial de Ventas</h3>
+              <p class="text-[10px] text-slate-400">Consulta ventas por fecha y persona</p>
+            </div>
+          </div>
+          <span id="historialContadorBadge" class="text-[10px] font-black text-neonGreen bg-neonGreen/10 px-2 py-0.5 rounded-full border border-neonGreen/30">
+            0 vendidas
+          </span>
+        </div>
+
+        <!-- Filtros de Fecha (Calendario) & Modo -->
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <div class="relative flex-1">
+              <input type="date" id="filtroHistorialFecha" onchange="renderHistorialVentas()" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-bold focus:border-neonGreen focus:outline-none">
+            </div>
+            <button onclick="setFechaHistorialHoy()" class="px-3 py-2 bg-subpanel text-neonGreen border border-neonGreen/30 text-xs font-black rounded-xl active:scale-95">
+              Hoy
+            </button>
+            <button onclick="setFechaHistorialTodas()" id="btnHistorialTodas" class="px-3 py-2 bg-subpanel text-slate-300 border border-slate-700 text-xs font-bold rounded-xl active:scale-95">
+              Todas
+            </button>
+          </div>
+
+          <!-- Filtro por Persona (Universal vs Individual) -->
+          <div class="flex space-x-1.5 overflow-x-auto custom-scroll text-xs">
+            <button onclick="filtrarHistorialPersona('todos')" id="btnHistPersTodos" class="px-3 py-1.5 rounded-xl font-black bg-gradient-to-r from-neonGreen to-neonGreenDark text-black shadow-neon-green">
+              Universal (Todos)
+            </button>
+            <button onclick="filtrarHistorialPersona('Zak')" id="btnHistPersZak" class="px-3 py-1.5 rounded-xl font-bold bg-subpanel text-electricCyan border border-electricCyan/30">
+              Zak
+            </button>
+            <button onclick="filtrarHistorialPersona('Ema')" id="btnHistPersEma" class="px-3 py-1.5 rounded-xl font-bold bg-subpanel text-solarGold border border-solarGold/30">
+              Ema
+            </button>
+            <button onclick="filtrarHistorialPersona('Miguel')" id="btnHistPersMiguel" class="px-3 py-1.5 rounded-xl font-bold bg-subpanel text-emerald-400 border border-emerald-400/30">
+              Miguel
+            </button>
+          </div>
+        </div>
+
+        <!-- Resumen de dinero recaudado en la selección -->
+        <div class="bg-subpanel/80 p-2.5 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
+          <span class="text-slate-400 font-bold" id="historialPeriodoTexto">Mostrando: Hoy</span>
+          <span class="font-black text-neonGreen text-sm" id="historialMontoTotal">$0 MXN</span>
+        </div>
+
+        <!-- Lista de tarjetas de prendas vendidas -->
+        <div id="listaHistorialVentas" class="space-y-2 max-h-72 overflow-y-auto custom-scroll">
+          <!-- Render dinámico -->
+        </div>
+      </div>
+
+      <!-- Liquidación Individual -->
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-3 shadow-xl">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xs font-black uppercase tracking-wider text-slate-200">Piezas Vendidas Pendientes</h3>
+          <span class="text-[10px] text-slate-400">Marca para pagar</span>
+        </div>
+
+        <div class="flex space-x-2 text-xs">
+          <button onclick="mostrarLiquidacionPersona('Ema')" id="btnLiqEma" class="flex-1 py-1.5 rounded-xl border border-solarGold bg-solarGold/15 text-solarGold font-black">Prendas de Ema</button>
+          <button onclick="mostrarLiquidacionPersona('Miguel')" id="btnLiqMiguel" class="flex-1 py-1.5 rounded-xl border border-slate-700 bg-subpanel text-slate-400 font-bold">Prendas de Miguel</button>
+        </div>
+
+        <div id="listaPiezasLiquidacion" class="space-y-2 max-h-60 overflow-y-auto custom-scroll"></div>
+
+        <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] text-slate-400 block">Total a liquidar:</span>
+            <span id="totalSeleccionadoLiquidar" class="text-lg font-black text-neonGreen">$0</span>
+          </div>
+          <button onclick="liquidarPiezasMarcadas()" class="px-4 py-2.5 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95">
+            Pagar Seleccionadas
+          </button>
+        </div>
+      </div>
+
+      <!-- Tablero de Estadísticas Top Ventas -->
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-3 shadow-xl">
+        <h3 class="text-xs font-black uppercase tracking-wider text-electricCyan flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-pie"></i> Estadísticas Top Ventas
+        </h3>
+        <div class="grid grid-cols-2 gap-2 text-xs" id="estadisticasTopVentas">
+          <!-- Render dinámico -->
+        </div>
+      </div>
+
+      <!-- Respaldo -->
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-2 text-center">
+        <h4 class="text-xs font-bold text-slate-400">Copia de Seguridad de la App</h4>
+        <div class="flex space-x-2">
+          <button onclick="exportarBaseDatos()" class="flex-1 py-2.5 bg-subpanel text-slate-200 rounded-xl text-xs font-black border border-slate-700 active:scale-95">
+            <i class="fa-solid fa-download"></i> Guardar Copia (JSON)
+          </button>
+          <button onclick="document.getElementById('fileRestaurar').click()" class="flex-1 py-2.5 bg-subpanel text-slate-200 rounded-xl text-xs font-black border border-slate-700 active:scale-95">
+            <i class="fa-solid fa-upload"></i> Restaurar Copia
+          </button>
+          <input type="file" id="fileRestaurar" accept=".json" class="hidden" onchange="importarBaseDatos(this)">
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM DOCK LIMPIO Y VIBRANTE (4 PESTAÑAS SIN COBRO LOTE) -->
+  <nav class="fixed bottom-0 inset-x-0 z-50 bg-[#0a0f18]/95 backdrop-blur-2xl border-t border-slate-800/90 py-2 px-3 shadow-dock">
+    <div class="max-w-lg mx-auto grid grid-cols-4 gap-2 text-center items-center">
+      
+      <!-- Tab 1: Ropa -->
+      <button onclick="cambiarTab('inventario')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="inventario">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-cyan-500/15 border border-cyan-400/40 text-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.25)]">
+          <i class="fa-solid fa-boxes-stacked text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#00e5ff] tab-label">Ropa</span>
+      </button>
+
+      <!-- Tab 2: Alta -->
+      <button onclick="cambiarTab('registro')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="registro">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-emerald-500/15 border border-emerald-400/40 text-[#00ff66] shadow-[0_0_12px_rgba(0,255,102,0.25)]">
+          <i class="fa-solid fa-circle-plus text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#00ff66] tab-label">Alta</span>
+      </button>
+
+      <!-- Tab 3: Buscar -->
+      <button onclick="cambiarTab('buscador')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="buscador">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-purple-500/15 border border-purple-400/40 text-[#c084fc] shadow-[0_0_12px_rgba(192,132,252,0.25)]">
+          <i class="fa-solid fa-magnifying-glass text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#c084fc] tab-label">Buscar</span>
+      </button>
+
+      <!-- Tab 4: Cuentas -->
+      <button onclick="cambiarTab('cuentas')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="cuentas">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-teal-500/15 border border-teal-400/40 text-[#2dd4bf] shadow-[0_0_12px_rgba(45,212,191,0.25)]">
+          <i class="fa-solid fa-wallet text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#2dd4bf] tab-label">Cuentas</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- MODAL: COBRAR PRENDA INDIVIDUAL -->
+  <div id="modalCobroDirecto" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-green">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] text-slate-400 font-bold uppercase block">Confirmar Cobro</span>
+          <h3 id="cobroModalTitulo" class="text-sm font-black text-white truncate">Prenda</h3>
+        </div>
+        <button onclick="cerrarModalCobro()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Detalle Prenda & Precio Final -->
+      <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-slate-400 font-bold">Precio a Cobrar:</span>
+          <div class="flex items-center space-x-1">
+            <span class="text-sm font-black text-neonGreen">$</span>
+            <input type="number" id="cobroModalPrecio" oninput="calcularCambioCobro()" class="w-20 bg-panel border border-slate-700 rounded-xl px-2 py-1 text-center font-black text-neonGreen text-base focus:border-neonGreen focus:outline-none">
+          </div>
+        </div>
+        <div class="flex justify-between items-center text-[11px] text-slate-400">
+          <span>Dueño: <strong id="cobroModalDueno" class="text-white">Zak</strong></span>
+          <span>Talla: <strong id="cobroModalTalla" class="text-white">M</strong></span>
+        </div>
+      </div>
+
+      <!-- Método de Pago -->
+      <div class="space-y-1.5">
+        <label class="block text-[10px] font-black text-slate-400 uppercase">MÉTODO DE PAGO</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setMetodoCobroModal('Efectivo')" id="btnModalEfec" class="py-2 rounded-xl border border-neonGreen bg-neonGreen/20 text-neonGreen font-black text-xs">Efectivo</button>
+          <button onclick="setMetodoCobroModal('Transferencia')" id="btnModalTrans" class="py-2 rounded-xl border border-slate-700 bg-subpanel text-slate-400 font-bold text-xs">Transfer / QR</button>
+        </div>
+      </div>
+
+      <!-- Sección Efectivo / Cambio -->
+      <div id="seccionModalEfectivo" class="space-y-2">
+        <div class="flex items-center space-x-2">
+          <input type="number" id="pagoRecibidoModal" oninput="calcularCambioCobro()" placeholder="Paga con: $..." class="flex-1 bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-white focus:border-neonGreen focus:outline-none">
+          <button onclick="setRecibidoModalExacto()" class="px-3 py-2 bg-slate-800 text-xs font-bold rounded-xl border border-slate-700">Exacto</button>
+          <button onclick="setRecibidoModal(200)" class="px-2.5 py-2 bg-slate-800 text-xs font-bold rounded-xl border border-slate-700">$200</button>
+          <button onclick="setRecibidoModal(500)" class="px-2.5 py-2 bg-slate-800 text-xs font-bold rounded-xl border border-slate-700">$500</button>
+        </div>
+        <div class="flex justify-between items-center text-xs px-1">
+          <span class="text-slate-400 font-bold">Cambio a entregar:</span>
+          <span id="cambioCalculadoModal" class="font-black text-sm text-roseNeon">$0</span>
+        </div>
+      </div>
+
+      <!-- Sección QR Transferencia -->
+      <div id="seccionModalQR" class="hidden space-y-2 text-center p-3 rounded-2xl bg-subpanel border border-slate-800">
+        <span class="text-[11px] font-bold text-electricCyan block">Muestra este QR al cliente para transferir</span>
+        <div class="w-36 h-36 mx-auto bg-white rounded-xl p-1.5 flex items-center justify-center overflow-hidden">
+          <img id="imgQRBancario" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=PagoZakSelect" class="w-full h-full object-contain">
+        </div>
+        <button onclick="abrirSubirQR()" class="text-[10px] text-slate-400 hover:text-white underline">Cambiar mi QR bancario</button>
+      </div>
+
+      <input type="hidden" id="cobroModalPrendaId" value="">
+
+      <!-- Botón Confirmar Venta -->
+      <button onclick="confirmarCobroDirecto()" class="w-full py-3.5 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-xs rounded-2xl shadow-neon-green active:scale-95 flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-check-double"></i> CONFIRMAR VENTA
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: APARTAR PRENDA -->
+  <div id="modalApartarPrenda" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-solarGold/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-gold">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] text-solarGold font-black uppercase block">Módulo de Apartados</span>
+          <h3 id="apartarModalTitulo" class="text-sm font-black text-white truncate">Prenda</h3>
+        </div>
+        <button onclick="cerrarModalApartar()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Nombre del Cliente</label>
+          <input type="text" id="apartarCliente" placeholder="Ej. Juan Pérez" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-solarGold focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Teléfono / WhatsApp (opcional)</label>
+          <input type="tel" id="apartarTelefono" placeholder="Ej. 664 123 4567" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-solarGold focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Anticipo Dejado ($)</label>
+            <input type="number" id="apartarAnticipo" placeholder="$ 100" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-solarGold font-black text-sm focus:border-solarGold focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Precio Total ($)</label>
+            <input type="number" id="apartarPrecioTotal" readonly class="w-full bg-subpanel/50 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold text-sm">
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" id="apartarPrendaId" value="">
+
+      <button onclick="guardarApartadoConfirmado()" class="w-full py-3 bg-solarGold text-black font-black text-xs rounded-2xl shadow-neon-gold active:scale-95 flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-bookmark"></i> GUARDAR APARTADO
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: LIQUIDAR APARTADO -->
+  <div id="modalLiquidarApartado" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-green">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-black text-white">Liquidar y Entregar Apartado</h3>
+        <button onclick="cerrarModalLiquidarApartado()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+        <p class="font-bold text-white" id="liqApDesc">Prenda</p>
+        <p class="text-slate-400">Cliente: <strong id="liqApCliente" class="text-slate-200">...</strong></p>
+        <div class="flex justify-between pt-1 border-t border-slate-800 text-[11px]">
+          <span>Anticipo dejado: <strong id="liqApAnticipo" class="text-solarGold">$0</strong></span>
+          <span>Resta por cobrar: <strong id="liqApResta" class="text-neonGreen text-sm font-black">$0</strong></span>
+        </div>
+      </div>
+
+      <input type="hidden" id="liqApPrendaId" value="">
+
+      <div class="space-y-2">
+        <button onclick="confirmarLiquidacionApartado()" class="w-full py-3 bg-neonGreen text-black font-black text-xs rounded-2xl shadow-neon-green active:scale-95">
+          ✓ Cobrar Restante y Entregar Prenda
+        </button>
+        <button onclick="cancelarApartadoRegresarPuesto()" class="w-full py-2 bg-rose-500/15 text-roseNeon border border-rose-500/30 font-bold text-xs rounded-2xl active:scale-95">
+          Cancelar y Regresar al Puesto (Cliente no vino)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CORTE DIARIO DEL PUESTO -->
+  <div id="modalCorteDia" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-green">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] text-neonGreen font-black uppercase tracking-wider block">Resumen del Día</span>
+          <h3 class="text-sm font-black text-white">Corte Diario en Puesto</h3>
+        </div>
+        <button onclick="cerrarCorteDia()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 space-y-1.5">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Ventas en Efectivo:</span>
+            <span id="corteEfectivo" class="font-black text-white">$0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Ventas por Transferencia:</span>
+            <span id="corteTransfer" class="font-black text-electricCyan">$0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Anticipos de Apartados Hoy:</span>
+            <span id="corteAnticipos" class="font-black text-solarGold">$0</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-slate-800 font-bold">
+            <span class="text-slate-300">Total Bruto en Caja:</span>
+            <span id="corteTotalBruto" class="text-neonGreen font-black">$0</span>
+          </div>
+        </div>
+
+        <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 space-y-1.5">
+          <div class="flex justify-between text-roseNeon">
+            <span>Gastos Registrados Hoy:</span>
+            <span id="corteGastos" class="font-black">-$0</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-slate-800">
+            <span class="text-slate-400">Lana que pertenece a Ema/Miguel:</span>
+            <span id="corteTerceros" class="text-amber-400 font-bold">$0</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-slate-800 font-black text-sm">
+            <span class="text-white">Ganancia Neta Limpia (Zak):</span>
+            <span id="corteNetoZak" class="text-neonGreen glow-green text-base">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-[10px] text-slate-500 text-center italic">* Hacer este corte no reinicia ni borra los adeudos acumulados a Ema y Miguel.</p>
+
+      <button onclick="cerrarCorteDia()" class="w-full py-2.5 bg-subpanel text-slate-200 border border-slate-700 font-bold text-xs rounded-xl">
+        Cerrar Ventana
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: CATÁLOGO PARA WHATSAPP -->
+  <div id="modalCatalogo" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-3.5 shadow-neon-green">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-black text-white flex items-center gap-1.5">
+          <i class="fa-brands fa-whatsapp text-neonGreen"></i> Ficha Catálogo Comercial
+        </h3>
+        <button onclick="cerrarModalCatalogo()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <select id="catFiltroMarca" onchange="generarTextoCatalogo()" class="bg-subpanel border border-slate-700 rounded-xl px-2 py-1.5 text-slate-200">
+            <option value="todas">Todas las Marcas</option>
+          </select>
+          <select id="catFiltroTalla" onchange="generarTextoCatalogo()" class="bg-subpanel border border-slate-700 rounded-xl px-2 py-1.5 text-slate-200">
+            <option value="todas">Todas las Tallas</option>
+            <option value="XS">Talla XS</option>
+            <option value="S">Talla S</option>
+            <option value="M">Talla M</option>
+            <option value="L">Talla L</option>
+            <option value="XL">Talla XL</option>
+            <option value="XXL">Talla XXL</option>
+            <option value="Uni">Unitalla</option>
+          </select>
+        </div>
+
+        <textarea id="textoCatalogoGenerado" rows="7" readonly class="w-full bg-subpanel border border-slate-700 rounded-2xl p-2.5 text-[11px] text-slate-200 focus:outline-none custom-scroll font-mono"></textarea>
+      </div>
+
+      <div class="flex space-x-2">
+        <button onclick="copiarTextoCatalogo()" class="flex-1 py-2.5 bg-subpanel border border-slate-700 text-slate-200 font-black text-xs rounded-xl active:scale-95">
+          Copiar Ficha
+        </button>
+        <button onclick="enviarCatalogoWhatsApp()" class="flex-1 py-2.5 bg-neonGreen text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95">
+          WhatsApp Directo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUDITORÍA DE PERCHERO -->
+  <div id="modalAuditoria" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-electricCyan/40 rounded-3xl p-5 max-w-sm w-full space-y-3 shadow-neon-cyan">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-black text-white flex items-center gap-1.5">
+          <i class="fa-solid fa-list-check text-electricCyan"></i> Conteo Rápido de Perchero
+        </h3>
+        <button onclick="cerrarAuditoriaPerchero()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="detalleAuditoriaTexto" class="space-y-2 text-xs text-slate-300 bg-subpanel p-3 rounded-2xl border border-slate-800">
+        <!-- Render dinámico -->
+      </div>
+      <button onclick="cerrarAuditoriaPerchero()" class="w-full py-2.5 bg-electricCyan text-black font-black text-xs rounded-xl shadow-neon-cyan active:scale-95">
+        Entendido
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA MARCA -->
+  <div id="modalNuevaMarca" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-green">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-tag text-neonGreen"></i> Registrar Nueva Marca
+        </h3>
+        <button onclick="cerrarModalNuevaMarca()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <input type="text" id="inputNombreMarca" placeholder="Ej. Gymshark, Nike, Patagonia..." class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-neonGreen focus:outline-none">
+      <div class="flex space-x-2 pt-1">
+        <button onclick="cerrarModalNuevaMarca()" class="flex-1 py-2 bg-subpanel border border-slate-700 text-slate-300 font-bold text-xs rounded-xl">Cancelar</button>
+        <button onclick="guardarNuevaMarca()" class="flex-1 py-2 bg-neonGreen text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURACIÓN GENERAL -->
+  <div id="modalConfig" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-slate-800 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-neonGreen"></i> Configuración
+        </h3>
+        <button onclick="cerrarModalConfig()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- QR Bancario -->
+      <div class="space-y-2">
+        <label class="block text-xs font-black text-slate-300 uppercase">QR Bancario para Transferencias</label>
+        <div class="flex items-center space-x-2">
+          <input type="file" id="fileUploadQR" accept="image/*" class="hidden" onchange="guardarNuevoQR(this)">
+          <button onclick="document.getElementById('fileUploadQR').click()" class="py-2 px-3 bg-subpanel border border-slate-700 text-slate-200 text-xs font-bold rounded-xl active:scale-95">
+            <i class="fa-solid fa-qrcode text-electricCyan mr-1"></i> Subir Imagen de mi QR
+          </button>
+        </div>
+      </div>
+
+      <!-- Marcas -->
+      <div class="space-y-2">
+        <label class="block text-xs font-black text-slate-300 uppercase">Marcas Configuradas</label>
+        <div id="listaMarcasConfig" class="flex flex-wrap gap-1.5 p-2 bg-subpanel rounded-2xl max-h-40 overflow-y-auto custom-scroll border border-slate-800"></div>
+        <button onclick="abrirModalNuevaMarca()" class="w-full py-2 bg-neonGreen/10 text-neonGreen border border-neonGreen/30 rounded-xl text-xs font-black active:scale-95">
+          + Agregar Marca
+        </button>
+      </div>
+
+      <button onclick="cerrarModalConfig()" class="w-full py-2.5 bg-subpanel text-slate-200 font-black text-xs rounded-xl border border-slate-700">
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+      <!-- MODAL: EDITAR CUALQUIER PRENDA DEL INVENTARIO -->
+  <div id="modalEditarPrenda" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-3.5 shadow-neon-green max-h-[90vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 rounded-lg bg-neonGreen/10 border border-neonGreen/30 flex items-center justify-center text-neonGreen">
+            <i class="fa-solid fa-pen-to-square text-xs"></i>
+          </div>
+          <h3 class="text-sm font-black text-white">Editar Prenda Guardada</h3>
+        </div>
+        <button onclick="cerrarModalEditarPrenda()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Preview de Foto actual con opción de cambiar -->
+      <div class="flex items-center space-x-3 bg-subpanel p-2.5 rounded-2xl border border-slate-800">
+        <div class="w-16 h-16 rounded-xl bg-panel overflow-hidden border border-slate-700 flex-shrink-0">
+          <img id="editPrendaFotoPreview" class="w-full h-full object-cover">
+        </div>
+        <div class="flex-1 space-y-1">
+          <span class="text-[10px] text-slate-400 font-bold block">Foto de la Prenda</span>
+          <div class="flex space-x-1">
+            <button type="button" onclick="document.getElementById('editPrendaCam').click()" class="py-1 px-2 bg-neonGreen/15 text-neonGreen border border-neonGreen/30 rounded-lg text-[9px] font-bold active:scale-95">
+              <i class="fa-solid fa-camera"></i> Cámara
+            </button>
+            <button type="button" onclick="document.getElementById('editPrendaGal').click()" class="py-1 px-2 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95">
+              <i class="fa-solid fa-images"></i> Álbum
+            </button>
+          </div>
+          <input type="file" id="editPrendaCam" accept="image/*" capture="environment" class="hidden" onchange="cambiarFotoPrenda(this)">
+          <input type="file" id="editPrendaGal" accept="image/*,image/jpeg,image/png,image/webp" class="hidden" onchange="cambiarFotoPrenda(this)">
+        </div>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Descripción / Detalle</label>
+          <input type="text" id="editPrendaDesc" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-neonGreen focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Marca</label>
+            <select id="editPrendaMarca" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold focus:border-neonGreen focus:outline-none">
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Talla</label>
+            <select id="editPrendaTalla" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold focus:border-neonGreen focus:outline-none">
+              <option value="XS">XS</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+              <option value="Uni">Unitalla</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Precio Venta ($)</label>
+            <input type="number" id="editPrendaPrecio" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-neonGreen font-black text-sm focus:border-neonGreen focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Costo Inversión ($)</label>
+            <input type="number" id="editPrendaCosto" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-slate-300 text-xs focus:border-slate-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Pertenece a</label>
+            <select id="editPrendaDueno" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold">
+              <option value="Zak">Zak (Mío)</option>
+              <option value="Ema">Ema</option>
+              <option value="Miguel">Miguel</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Condición</label>
+            <select id="editPrendaCondicion" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold">
+              <option value="Nuevo">Nuevo</option>
+              <option value="Como nuevo">Como nuevo</option>
+              <option value="Seminuevo">Seminuevo</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Género / Público</label>
+          <select id="editPrendaGenero" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold focus:border-neonGreen focus:outline-none">
+            <option value="Hombre">👨 Hombre</option>
+            <option value="Mujer">👩 Mujer</option>
+            <option value="Unisex">🚻 Unisex</option>
+          </select>
+        </div>
+      </div>
+
+      <input type="hidden" id="editPrendaId" value="">
+
+      <div class="pt-2 border-t border-slate-800">
+        <button onclick="guardarEdicionPrendaInventario()" class="w-full py-3 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-floppy-disk"></i> GUARDAR CAMBIOS DE LA PRENDA
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALLE Y EDICIÓN DE PRENDA VENDIDA -->
+  <div id="modalEditarVenta" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-electricCyan/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-cyan max-h-[90vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] text-electricCyan font-black uppercase tracking-wider block">Ficha de Prenda Vendida</span>
+          <h3 id="editVentaTitulo" class="text-sm font-black text-white truncate">Prenda</h3>
+        </div>
+        <button onclick="cerrarModalEditarVenta()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Imagen -->
+      <div class="h-40 rounded-2xl bg-subpanel overflow-hidden border border-slate-700 relative">
+        <img id="editVentaFoto" class="w-full h-full object-cover">
+        <span id="editVentaBadgeLiquidado" class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg text-[10px] font-black border backdrop-blur-md"></span>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Descripción / Detalle</label>
+          <input type="text" id="editVentaDesc" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-electricCyan focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Precio Cobrado ($)</label>
+            <input type="number" id="editVentaPrecio" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-neonGreen font-black text-sm focus:border-neonGreen focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Talla</label>
+            <input type="text" id="editVentaTalla" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Pertenecía a</label>
+            <select id="editVentaDueno" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-bold">
+              <option value="Zak">Zak (Mío)</option>
+              <option value="Ema">Ema</option>
+              <option value="Miguel">Miguel</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Método de Pago</label>
+            <select id="editVentaMetodo" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-bold">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Mixto">Mixto</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Selector de Estado de Liquidación (Para pagar o despagar con 1 toque) -->
+        <div id="divEditLiquidacion" class="space-y-1">
+          <label class="block text-slate-400 font-bold mb-1">Estado de Pago a Ema / Miguel</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="setEditEstadoLiquidacion(false)" id="btnEditLiqPendiente" class="py-2 rounded-xl border text-xs font-black">
+              ⏳ Se le debe
+            </button>
+            <button type="button" onclick="setEditEstadoLiquidacion(true)" id="btnEditLiqPagado" class="py-2 rounded-xl border text-xs font-black">
+              ✓ Ya pagada
+            </button>
+          </div>
+          <input type="hidden" id="editVentaLiquidadoVal" value="false">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Fecha de Venta</label>
+            <input type="date" id="editVentaFecha" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-1.5 text-white text-xs">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Plaza / Puesto</label>
+            <input type="text" id="editVentaPlaza" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-1.5 text-white text-xs">
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" id="editVentaPrendaId" value="">
+
+      <!-- Botones de Acción -->
+      <div class="space-y-2 pt-1 border-t border-slate-800">
+        <button onclick="guardarEdicionVenta()" class="w-full py-2.5 bg-electricCyan text-black font-black text-xs rounded-xl shadow-neon-cyan active:scale-95">
+          <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Ajustes
+        </button>
+        <button onclick="deshacerVentaRegresarInventario()" class="w-full py-2 bg-rose-500/15 text-roseNeon border border-rose-500/30 font-bold text-xs rounded-xl active:scale-95">
+          <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Deshacer Venta (Devolver al Rack)
+        </button>
+      </div>
+    </div>
+  </div>
+
+    <!-- MODAL: CREAR PEDIDO MULTIPIEZA / ENTREGA INTERNET -->
+  <div id="modalCrearPedido" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-solarGold/40 rounded-3xl p-5 max-w-sm w-full space-y-3.5 shadow-neon-gold max-h-[92vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 rounded-lg bg-solarGold/10 border border-solarGold/30 flex items-center justify-center text-solarGold">
+            <i class="fa-solid fa-boxes-packing text-xs"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-solarGold font-black uppercase tracking-wider block">Entrega por Redes / Apartado</span>
+            <h3 class="text-sm font-black text-white">Nuevo Pedido Multipieza</h3>
+          </div>
+        </div>
+        <button onclick="cerrarModalCrearPedido()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- LECTOR INTELIGENTE DE MENSAJES DE WHATSAPP -->
+      <div class="bg-subpanel p-3 rounded-2xl border border-solarGold/30 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-black text-solarGold uppercase flex items-center gap-1.5">
+            <i class="fa-brands fa-whatsapp text-sm"></i> Pegar Mensaje de Redes / Mamá
+          </span>
+          <span class="text-[9px] text-slate-400 font-bold">Lector inteligente</span>
+        </div>
+        <textarea id="inputTextoWhatsAppMama" rows="3" placeholder="Pega aquí el mensaje tal como te lo mandó tu mamá (en cualquier orden)..." class="w-full bg-panel border border-slate-700 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:border-solarGold focus:outline-none custom-scroll"></textarea>
+        <button type="button" onclick="extraerDatosMensajeWhatsApp()" class="w-full py-2 bg-gradient-to-r from-solarGold to-amber-500 text-black font-black text-xs rounded-xl shadow-neon-gold active:scale-95 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-bolt"></i> Extraer Datos y Auto-Rellenar
+        </button>
+      </div>
+
+      <!-- CAMPOS DEL FORMULARIO RELLENADOS / EDITABLES -->
+      <div class="space-y-2.5 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Nombre del Cliente</label>
+          <input type="text" id="pedidoClienteNombre" placeholder="Ej. Ernesto Hernández" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-solarGold focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Teléfono / WhatsApp</label>
+            <input type="tel" id="pedidoClienteTel" placeholder="664 123 4567" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-bold focus:border-solarGold focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Punto / Zona Entrega</label>
+            <select id="pedidoZonaEntrega" class="w-full bg-subpanel border border-slate-700 rounded-xl px-2.5 py-2 text-white font-bold focus:border-solarGold focus:outline-none">
+              <option value="Por definir" selected>📍 Por definir</option>
+              <option value="Playas">Playas</option>
+              <option value="Alemán">Alemán</option>
+              <option value="Salvatierra">Salvatierra</option>
+              <option value="Internet / Domicilio">Internet / Domicilio</option>
+              <option value="Puesto Físico">Puesto Físico</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Cantidad de Piezas & Detalle / Tipo de Prendas -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-1">
+            <label class="block text-slate-400 font-bold mb-1">Cant. Piezas</label>
+            <input type="number" id="pedidoCantPiezasInput" placeholder="3" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white font-black text-center focus:border-solarGold focus:outline-none">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-slate-400 font-bold mb-1">Descripción / Tipo</label>
+            <input type="text" id="pedidoDetallePrendas" placeholder="Ej. 3 playeras polo" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-solarGold focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Total del Pedido ($)</label>
+            <input type="number" id="pedidoTotalMonto" oninput="calcularRestantePedido()" placeholder="$ 600" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-neonGreen font-black text-sm focus:border-neonGreen focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Anticipo Dejado ($)</label>
+            <input type="number" id="pedidoAnticipo" oninput="calcularRestantePedido()" placeholder="$ 0" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-solarGold font-black text-sm focus:border-solarGold focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Lista de piezas seleccionadas en inventario -->
+        <div class="space-y-1">
+          <label class="block text-slate-400 font-bold">Prendas seleccionadas del rack (<span id="pedidoCantPrendas">0</span>):</label>
+          <div id="listaPrendasCrearPedido" class="space-y-1.5 max-h-32 overflow-y-auto custom-scroll p-1 bg-subpanel rounded-2xl border border-slate-800">
+            <!-- Render dinámico -->
+          </div>
+        </div>
+
+        <div class="bg-subpanel/80 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+          <span class="text-slate-400 font-bold">Resta por cobrar al entregar:</span>
+          <span id="pedidoRestaCobrar" class="font-black text-neonGreen text-sm">$0 MXN</span>
+        </div>
+      </div>
+
+      <button onclick="guardarNuevoPedidoMultipieza()" class="w-full py-3.5 bg-solarGold text-black font-black text-xs rounded-2xl shadow-neon-gold active:scale-95 flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-bookmark"></i> CONFIRMAR Y APARTAR PEDIDO
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: POST-GUARDADO CONTACTO WHATSAPP INMEDIATO -->
+  <div id="modalConfirmacionPedidoWhatsApp" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-neonGreen/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-green text-center">
+      <div class="w-12 h-12 rounded-2xl bg-neonGreen/15 border border-neonGreen/30 text-neonGreen flex items-center justify-center mx-auto text-xl shadow-neon-green">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-black text-white">¡Pedido Apartado con Éxito!</h3>
+        <p class="text-xs text-slate-400 mt-1" id="postSaveClienteResumen">Cliente: ...</p>
+      </div>
+
+      <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 text-xs text-left space-y-1 text-slate-300">
+        <p>• Las prendas ya se retiraron del perchero del puesto.</p>
+        <p>• Puedes contactar al cliente por WhatsApp ahora mismo:</p>
+      </div>
+
+      <input type="hidden" id="postSavePedidoId" value="">
+
+      <div class="space-y-2">
+        <button onclick="enviarMensajeRutaWhatsApp(document.getElementById('postSavePedidoId').value); cerrarModalPostSaveWhatsApp();" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black text-xs rounded-2xl shadow-neon-green active:scale-95 flex items-center justify-center gap-2">
+          <i class="fa-brands fa-whatsapp text-base"></i> Mandar Mensaje de Ruta
+        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="copiarMensajeRutaWhatsApp(document.getElementById('postSavePedidoId').value)" class="py-2.5 bg-subpanel text-slate-200 border border-slate-700 font-bold text-xs rounded-2xl active:scale-95 flex items-center justify-center gap-1.5 hover:border-solarGold">
+            <i class="fa-solid fa-copy text-solarGold"></i> Copiar Mensaje
+          </button>
+          <button onclick="abrirChatLimpioWhatsApp(document.getElementById('postSavePedidoId').value); cerrarModalPostSaveWhatsApp();" class="py-2.5 bg-subpanel text-slate-200 border border-slate-700 font-bold text-xs rounded-2xl active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-regular fa-comment-dots text-electricCyan"></i> Chat Limpio
+          </button>
+        </div>
+        <button onclick="cerrarModalPostSaveWhatsApp()" class="w-full py-2 text-slate-400 font-bold text-xs hover:text-white">
+          Continuar sin enviar ahora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GESTIONAR, EDITAR PIEZAS Y COBRAR ENTREGA -->
+  <div id="modalGestionarPedido" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-panel border border-solarGold/50 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-neon-gold max-h-[92vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] text-solarGold font-black uppercase tracking-wider block">Entrega al Cliente</span>
+          <h3 id="gestPedidoTitulo" class="text-sm font-black text-white truncate">Pedido</h3>
+        </div>
+        <button onclick="cerrarModalGestionarPedido()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Resumen de contacto -->
+      <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 flex items-center justify-between text-xs">
+        <div>
+          <span class="font-black text-white block text-sm" id="gestPedidoCliente">Cliente</span>
+          <span class="text-slate-400 text-[11px]" id="gestPedidoZona">Zona: Playas</span>
+        </div>
+        <div id="gestPedidoWhatsAppBtn"></div>
+      </div>
+
+      <!-- Lista interactiva de prendas (con opción de retirar si no se la lleva) -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <label class="text-slate-400 font-bold">Prendas del Pedido:</label>
+          <span class="text-[10px] text-slate-500">¿No se lleva alguna? Quítala aquí</span>
+        </div>
+        <div id="listaPrendasGestionarPedido" class="space-y-2 max-h-48 overflow-y-auto custom-scroll">
+          <!-- Render dinámico -->
+        </div>
+      </div>
+
+      <!-- Finanzas de la Entrega -->
+      <div class="bg-subpanel p-3 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Total de las piezas:</span>
+          <span id="gestPedidoTotal" class="font-bold text-white">$0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Anticipo recibido:</span>
+          <span id="gestPedidoAnticipo" class="font-bold text-solarGold">-$0</span>
+        </div>
+        <div class="flex justify-between pt-1 border-t border-slate-800 text-sm font-black">
+          <span class="text-slate-200">Total a Cobrar Ahora:</span>
+          <span id="gestPedidoACobrar" class="text-neonGreen glow-green text-base">$0 MXN</span>
+        </div>
+      </div>
+
+      <!-- Método de Pago -->
+      <div class="space-y-1.5">
+        <label class="block text-[10px] font-black text-slate-400 uppercase">MÉTODO DE COBRO</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="setMetodoCobroPedido('Efectivo')" id="btnGestEfec" class="py-2 rounded-xl border border-neonGreen bg-neonGreen/20 text-neonGreen font-black text-xs">Efectivo</button>
+          <button type="button" onclick="setMetodoCobroPedido('Transferencia')" id="btnGestTrans" class="py-2 rounded-xl border border-slate-700 bg-subpanel text-slate-400 font-bold text-xs">Transferencia</button>
+        </div>
+      </div>
+
+      <!-- Calculadora Rápida de Cambio en Efectivo -->
+      <div id="seccionGestEfectivo" class="space-y-2">
+        <div class="flex items-center space-x-2">
+          <input type="number" id="pagoRecibidoPedido" oninput="calcularCambioPedido()" placeholder="Paga con: $..." class="flex-1 bg-subpanel border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-white focus:border-neonGreen focus:outline-none">
+          <button onclick="setRecibidoPedidoExacto()" class="px-3 py-2 bg-slate-800 text-xs font-bold rounded-xl border border-slate-700">Exacto</button>
+        </div>
+        <div class="flex justify-between items-center text-xs px-1">
+          <span class="text-slate-400 font-bold">Cambio a entregar:</span>
+          <span id="cambioCalculadoPedido" class="font-black text-sm text-roseNeon">$0</span>
+        </div>
+      </div>
+
+      <input type="hidden" id="gestPedidoId" value="">
+
+      <!-- Botones de Acción Final -->
+      <div class="space-y-2 pt-1 border-t border-slate-800">
+        <button onclick="confirmarEntregaPedidoCobrado()" class="w-full py-3 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-check-double"></i> COBRAR Y ENTREGAR PEDIDO
+        </button>
+        <button onclick="cancelarPedidoCompletoDevolver()" class="w-full py-2 bg-rose-500/15 text-roseNeon border border-rose-500/30 font-bold text-xs rounded-xl active:scale-95">
+          <i class="fa-solid fa-ban mr-1"></i> Cancelar Todo el Pedido (Regresar al Perchero)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DE CONTROL TOTAL -->
+  <script>
+    // ESTADO GLOBAL
+    let db = {
+      marcas: ['Gymshark', 'Patagonia', 'Nike', 'Adidas', 'Under Armour', 'The North Face', 'Lululemon', 'Columbia', 'Champion', 'Levi\'s', 'Zara', 'Aeropostale'],
+      prendas: [],
+      ventas: [],
+      gastos: [],
+      qrBancario: '',
+      plazaActual: 'Playas',
+      duenoSeleccionadoAlta: 'Zak',
+      marcaSeleccionadaAlta: 'Gymshark',
+      condicionSeleccionadaAlta: 'Nuevo',
+      generoSeleccionadoAlta: 'Hombre',
+      tallaSeleccionadaAlta: 'M',
+      filtroDuenoActivo: 'todos',
+      filtroEstadoActivo: 'disponible',
+      pedidos: [],
+      metodoCobroModal: 'Efectivo',
+      personaLiquidacionActiva: 'Ema'
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      cargarStorage();
+      actualizarReloj();
+      setInterval(actualizarReloj, 30000);
+      renderBotonesMarcas();
+      renderInventario();
+      renderResumenPorPersona();
+      renderGastos();
+      renderLiquidacion();
+      renderEstadisticas();
+      actualizarTotalesDeuda();
+      actualizarNavVisual('inventario');
+      inicializarHistorialFecha();
+      renderHistorialVentas();
+      if (db.qrBancario) {
+        document.getElementById('imgQRBancario').src = db.qrBancario;
+      }
+    });
+
+    function actualizarReloj() {
+      const ahora = new Date();
+      let h = ahora.getHours();
+      const m = ahora.getMinutes().toString().padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      document.getElementById('relojTop').innerText = `${h}:${m} ${ampm}`;
+    }
+
+    function guardarStorage() {
+      try {
+        localStorage.setItem('ZAK_SELECT_DEF_V4', JSON.stringify(db));
+      } catch (e) {
+        console.error('Error guardando en almacenamiento:', e);
+      }
+    }
+
+    function cargarStorage() {
+      const guardado = localStorage.getItem('ZAK_SELECT_DEF_V4') 
+                    || localStorage.getItem('ZAK_SELECT_PRO_DATA_V3') 
+                    || localStorage.getItem('ZAK_SELECT_DB_V2')
+                    || localStorage.getItem('ZAK_SELECT_DB');
+      if (guardado) {
+        try {
+          const parsed = JSON.parse(guardado);
+          db = { ...db, ...parsed };
+          if (!db.pedidos) db.pedidos = [];
+          if (!db.marcas || db.marcas.length === 0) {
+            db.marcas = ['Gymshark', 'Patagonia', 'Nike', 'Adidas', 'Under Armour', 'The North Face', 'Lululemon', 'Columbia', 'Champion', 'Levi\'s', 'Zara'];
+          }
+          // Aseguramos que guarde en la versión actual para que quede fijo
+          guardarStorage();
+        } catch (e) {}
+      }
+    }
+
+    function cambiarTab(tabName) {
+      ['inventario', 'registro', 'buscador', 'cuentas'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        if (el) el.classList.toggle('hidden', t !== tabName);
+      });
+      actualizarNavVisual(tabName);
+      if (tabName === 'inventario') renderResumenPorPersona();
+      if (tabName === 'cuentas') renderEstadisticas();
+    }
+
+    function actualizarNavVisual(activeTab) {
+      const tabsConfig = {
+        inventario: { bgActive: 'bg-[#00e5ff] text-black shadow-[0_0_18px_rgba(0,229,255,0.7)] border-white', bgInactive: 'bg-cyan-500/15 text-[#00e5ff] border-cyan-400/40' },
+        registro:   { bgActive: 'bg-[#00ff66] text-black shadow-[0_0_18px_rgba(0,255,102,0.7)] border-white', bgInactive: 'bg-emerald-500/15 text-[#00ff66] border-emerald-400/40' },
+        buscador:   { bgActive: 'bg-[#c084fc] text-black shadow-[0_0_18px_rgba(192,132,252,0.7)] border-white', bgInactive: 'bg-purple-500/15 text-[#c084fc] border-purple-400/40' },
+        cuentas:    { bgActive: 'bg-[#2dd4bf] text-black shadow-[0_0_18px_rgba(45,212,191,0.7)] border-white', bgInactive: 'bg-teal-500/15 text-[#2dd4bf] border-teal-400/40' }
+      };
+
+      document.querySelectorAll('.btn-nav').forEach(btn => {
+        const tab = btn.dataset.tab;
+        const iconWrap = btn.querySelector('.icon-container');
+        const label = btn.querySelector('.tab-label');
+        const conf = tabsConfig[tab];
+        if (!conf) return;
+
+        if (tab === activeTab) {
+          iconWrap.className = `w-12 h-8 rounded-xl flex items-center justify-center icon-container ${conf.bgActive} border scale-105 transition-all font-black`;
+          label.className = 'text-[10px] font-black mt-1 text-white scale-105';
+        } else {
+          iconWrap.className = `w-12 h-8 rounded-xl flex items-center justify-center icon-container ${conf.bgInactive} border transition-all`;
+          label.className = 'text-[10px] font-bold mt-1 text-slate-300';
+        }
+      });
+    }
+
+    // RESUMEN TEXTUAL DETALLADO POR PERSONA CON EMOJIS
+    function generarResumenTextoEmojis() {
+      const disponibles = db.prendas.filter(p => p.estado === 'disponible');
+      const dueños = [
+        { nombre: 'Zak', emoji: '👑', label: 'Zak (Mío)' },
+        { nombre: 'Ema', emoji: '🌸', label: 'Ema' },
+        { nombre: 'Miguel', emoji: '⚡', label: 'Miguel' }
+      ];
+
+      let textoCompleto = `👕 *ZAK SELECT - RESUMEN DE ROPA EN PUESTO* 📍 (${db.plazaActual})%0A%0A`;
+      let totalPuesto = disponibles.length;
+
+      dueños.forEach(d => {
+        const prendasD = disponibles.filter(p => p.dueno === d.nombre);
+        const conteoTallas = {};
+        prendasD.forEach(p => {
+          conteoTallas[p.talla] = (conteoTallas[p.talla] || 0) + 1;
+        });
+
+        const desgloseTallas = Object.entries(conteoTallas)
+          .map(([talla, cant]) => `${cant} ${talla}`)
+          .join(', ');
+
+        textoCompleto += `${d.emoji} *${d.label}:* ${prendasD.length} piezas%0A`;
+        textoCompleto += `   └ Tallas: ${desgloseTallas || 'Sin piezas'}%0A%0A`;
+      });
+
+      textoCompleto += `📦 *TOTAL EN PERCHERO:* ${totalPuesto} prendas listas para venta.`;
+      return textoCompleto;
+    }
+
+    function renderResumenPorPersona() {
+      const cont = document.getElementById('contenedorResumenEmojis');
+      if (!cont) return;
+      cont.innerHTML = '';
+
+      const disponibles = db.prendas.filter(p => p.estado === 'disponible');
+      const dueños = [
+        { nombre: 'Zak', emoji: '👑', label: 'Mío (Zak)', colorText: 'text-electricCyan', border: 'border-electricCyan/30', bg: 'bg-electricCyan/10' },
+        { nombre: 'Ema', emoji: '🌸', label: 'Ema', colorText: 'text-solarGold', border: 'border-solarGold/30', bg: 'bg-solarGold/10' },
+        { nombre: 'Miguel', emoji: '⚡', label: 'Miguel', colorText: 'text-emerald-400', border: 'border-emerald-400/30', bg: 'bg-emerald-400/10' }
+      ];
+
+      dueños.forEach(d => {
+        const prendasD = disponibles.filter(p => p.dueno === d.nombre);
+        const conteoTallas = {};
+        prendasD.forEach(p => {
+          conteoTallas[p.talla] = (conteoTallas[p.talla] || 0) + 1;
+        });
+
+        const chipsTallas = Object.entries(conteoTallas).map(([t, c]) => 
+          `<span class="px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 text-[10px] text-white font-bold">${c} ${t}</span>`
+        ).join(' ');
+
+        const card = document.createElement('div');
+        card.className = `flex items-center justify-between p-2 rounded-2xl ${d.bg} border ${d.border}`;
+        card.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <span class="text-sm">${d.emoji}</span>
+            <div>
+              <span class="font-black text-xs ${d.colorText}">${d.label}</span>
+              <div class="flex flex-wrap gap-1 mt-0.5">${chipsTallas || '<span class="text-[10px] text-slate-400">0 piezas</span>'}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-sm font-black text-white">${prendasD.length}</span>
+            <span class="text-[9px] text-slate-400 block">piezas</span>
+          </div>
+        `;
+        cont.appendChild(card);
+      });
+    }
+
+    function copiarResumenEmojis() {
+      const texto = decodeURIComponent(generarResumenTextoEmojis());
+      navigator.clipboard.writeText(texto).then(() => {
+        alert('¡Resumen de inventario copiado al portapapeles!');
+      });
+    }
+
+    // AUDITORÍA RÁPIDA DE PERCHERO
+    function abrirAuditoriaPerchero() {
+      const disponibles = db.prendas.filter(p => p.estado === 'disponible');
+      const zakCount = disponibles.filter(p => p.dueno === 'Zak').length;
+      const emaCount = disponibles.filter(p => p.dueno === 'Ema').length;
+      const miguelCount = disponibles.filter(p => p.dueno === 'Miguel').length;
+
+      document.getElementById('detalleAuditoriaTexto').innerHTML = `
+        <p class="font-black text-white text-sm mb-2">Conteo físico requerido en el rack:</p>
+        <div class="space-y-1">
+          <p>• 👑 <strong>Zak:</strong> ${zakCount} prendas colgadas</p>
+          <p>• 🌸 <strong>Ema:</strong> ${emaCount} prendas colgadas</p>
+          <p>• ⚡ <strong>Miguel:</strong> ${miguelCount} prendas colgadas</p>
+        </div>
+        <div class="pt-2 border-t border-slate-800 font-black text-neonGreen text-sm flex justify-between">
+          <span>Total exacto a contar:</span>
+          <span>${disponibles.length} prendas</span>
+        </div>
+      `;
+      document.getElementById('modalAuditoria').classList.remove('hidden');
+    }
+
+    function cerrarAuditoriaPerchero() {
+      document.getElementById('modalAuditoria').classList.add('hidden');
+    }
+
+    // CATÁLOGO COMERCIAL
+    function abrirModalCatalogo() {
+      const selectMarca = document.getElementById('catFiltroMarca');
+      selectMarca.innerHTML = '<option value="todas">Todas las Marcas</option>';
+      db.marcas.forEach(m => {
+        selectMarca.innerHTML += `<option value="${m}">${m}</option>`;
+      });
+      generarTextoCatalogo();
+      document.getElementById('modalCatalogo').classList.remove('hidden');
+    }
+
+    function cerrarModalCatalogo() {
+      document.getElementById('modalCatalogo').classList.add('hidden');
+    }
+
+    function generarTextoCatalogo() {
+      const mSel = document.getElementById('catFiltroMarca').value;
+      const tSel = document.getElementById('catFiltroTalla').value;
+
+      let lista = db.prendas.filter(p => p.estado === 'disponible');
+      if (mSel !== 'todas') lista = lista.filter(p => p.marca === mSel);
+      if (tSel !== 'todas') lista = lista.filter(p => p.talla === tSel);
+
+      let msg = `🔥 *CATÁLOGO DISPONIBLE - ZAK SELECT* 🔥%0A📍 Entregas en Playas, Alemán y Salvatierra%0A%0A`;
+      if (lista.length === 0) {
+        msg += `Por el momento no hay prendas disponibles con este filtro.%0A`;
+      } else {
+        lista.forEach((p, i) => {
+          msg += `${i+1}. *${p.marca}* - Talla ${p.talla}%0A   ${p.desc}%0A   💵 *$${p.precio} MXN* (${p.condicion})%0A%0A`;
+        });
+      }
+      msg += `📲 *Mándame mensaje para apartar tu prenda antes de que te la ganen!*`;
+      document.getElementById('textoCatalogoGenerado').value = decodeURIComponent(msg);
+    }
+
+    function copiarTextoCatalogo() {
+      const txt = document.getElementById('textoCatalogoGenerado').value;
+      navigator.clipboard.writeText(txt).then(() => alert('¡Ficha de catálogo copiada!'));
+    }
+
+    function enviarCatalogoWhatsApp() {
+      const txt = encodeURIComponent(document.getElementById('textoCatalogoGenerado').value);
+      window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
+    }
+
+    // CORTE DIARIO DEL PUESTO
+    function abrirCorteDelDia() {
+      const hoyStr = getFechaLocal();
+      const ventasHoy = db.ventas.filter(v => v.fecha === hoyStr);
+      const gastosHoy = db.gastos.filter(g => g.fecha === hoyStr);
+
+      let efec = 0, trans = 0, terceros = 0, zakNeto = 0;
+      ventasHoy.forEach(v => {
+        const monto = parseFloat(v.precioCobrado) || 0;
+        if (v.metodo === 'Transferencia') trans += monto;
+        else efec += monto;
+
+        if (v.dueno === 'Ema' || v.dueno === 'Miguel') {
+          terceros += monto;
+        } else {
+          zakNeto += monto;
+        }
+      });
+
+      const totGastos = gastosHoy.reduce((acc, g) => acc + (parseFloat(g.monto) || 0), 0);
+      const totalBruto = efec + trans;
+      const gananciaLimpiaZak = Math.max(0, zakNeto - totGastos);
+
+      document.getElementById('corteEfectivo').innerText = `$${efec}`;
+      document.getElementById('corteTransfer').innerText = `$${trans}`;
+      document.getElementById('corteAnticipos').innerText = `$0`;
+      document.getElementById('corteTotalBruto').innerText = `$${totalBruto}`;
+      document.getElementById('corteGastos').innerText = `-$${totGastos}`;
+      document.getElementById('corteTerceros').innerText = `$${terceros}`;
+      document.getElementById('corteNetoZak').innerText = `$${gananciaLimpiaZak}`;
+
+      document.getElementById('modalCorteDia').classList.remove('hidden');
+    }
+
+    function cerrarCorteDia() {
+      document.getElementById('modalCorteDia').classList.add('hidden');
+    }
+
+    // COMPRESOR AUTOMÁTICO DE IMÁGENES
+    function comprimirImagen(file, maxWidth, maxHeight, quality, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          let w = img.width, h = img.height;
+          if (w > h) {
+            if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+          } else {
+            if (h > maxHeight) { w = Math.round((w * maxHeight) / h); h = maxHeight; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function procesarFoto(input, previewId, iconId) {
+      if (input.files && input.files[0]) {
+        comprimirImagen(input.files[0], 800, 800, 0.72, function(dataUrl) {
+          const img = document.getElementById(previewId);
+          img.src = dataUrl;
+          img.classList.remove('hidden');
+          document.getElementById(iconId).classList.add('hidden');
+        });
+      }
+    }
+
+    function guardarPrendaNueva() {
+      const precio = parseFloat(document.getElementById('altaPrecio').value);
+      let desc = document.getElementById('altaDesc').value.trim();
+      const costo = parseFloat(document.getElementById('altaCosto').value) || 0;
+      const marca = db.marcaSeleccionadaAlta || 'Sin Marca';
+      const condicion = db.condicionSeleccionadaAlta || 'Nuevo';
+      const talla = db.tallaSeleccionadaAlta || 'M';
+      const genero = db.generoSeleccionadoAlta || 'Hombre';
+
+      if (!precio || isNaN(precio) || precio <= 0) {
+        alert('Por favor ingresa al menos el precio de venta de la prenda.');
+        document.getElementById('altaPrecio').focus();
+        return;
+      }
+
+      if (!desc) {
+        desc = `${marca} ${condicion} (${talla})`;
+      }
+
+      let fotoPrincipal = '';
+      const f1 = document.getElementById('previewFoto1');
+      const f2 = document.getElementById('previewFoto2');
+      const f3 = document.getElementById('previewFoto3');
+      [f1, f2, f3].forEach(imgEl => {
+        if (imgEl && imgEl.src && imgEl.src.startsWith('data:image') && !fotoPrincipal) {
+          fotoPrincipal = imgEl.src;
+        }
+      });
+
+      if (!fotoPrincipal) {
+        fotoPrincipal = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&auto=format&fit=crop&q=60';
+      }
+
+      const nuevaPrenda = {
+        id: 'P-' + Math.floor(100 + Math.random() * 900),
+        dueno: db.duenoSeleccionadoAlta,
+        marca: marca,
+        condicion: condicion,
+        genero: genero,
+        desc: desc,
+        talla: talla,
+        precio: precio,
+        costo: costo,
+        estado: 'disponible',
+        fechaIngreso: getFechaLocal(),
+        foto: fotoPrincipal
+      };
+
+      db.prendas.unshift(nuevaPrenda);
+      guardarStorage();
+      alert(`¡Prenda guardada en inventario!`);
+
+      document.getElementById('altaPrecio').value = '';
+      document.getElementById('altaDesc').value = '';
+      document.getElementById('altaCosto').value = '';
+      ['1', '2', '3'].forEach(n => {
+        const img = document.getElementById(`previewFoto${n}`);
+        if (img) { img.src = ''; img.classList.add('hidden'); }
+        const icon = document.getElementById(`iconFoto${n}`);
+        if (icon) icon.classList.remove('hidden');
+      });
+
+      renderInventario();
+      renderResumenPorPersona();
+      cambiarTab('inventario');
+    }
+
+    // INVENTARIO RENDER & SEMÁFORO DE ANTIGÜEDAD
+    function calcularSemaforoAntiguedad(fechaIngreso) {
+      if (!fechaIngreso) return { color: 'bg-neonGreen', texto: 'Novedad' };
+      const dias = Math.floor((new Date() - new Date(fechaIngreso)) / (1000 * 60 * 60 * 24));
+      if (dias < 15) return { color: 'bg-neonGreen', texto: `${dias}d` };
+      if (dias <= 30) return { color: 'bg-solarGold', texto: `${dias}d` };
+      return { color: 'bg-roseNeon animate-pulse', texto: `${dias}d rematar` };
+    }
+
+    function renderInventario() {
+      const grid = document.getElementById('gridInventario');
+      grid.innerHTML = '';
+
+      let lista = db.prendas.filter(p => {
+        const matchDueno = (db.filtroDuenoActivo === 'todos') || (p.dueno === db.filtroDuenoActivo);
+        const matchEstado = p.estado === db.filtroEstadoActivo;
+        return matchDueno && matchEstado;
+      });
+
+      const q = (document.getElementById('busquedaInventario')?.value || '').toLowerCase();
+      if (q) {
+        lista = lista.filter(p => 
+          (p.desc && p.desc.toLowerCase().includes(q)) || 
+          (p.marca && p.marca.toLowerCase().includes(q)) || 
+          (p.talla && p.talla.toLowerCase().includes(q))
+        );
+      }
+
+      document.getElementById('countTotal').innerText = db.prendas.length;
+      document.getElementById('countDisp').innerText = db.prendas.filter(p => p.estado === 'disponible').length;
+      document.getElementById('countApart').innerText = db.prendas.filter(p => p.estado === 'apartado').length;
+      document.getElementById('countVend').innerText = db.prendas.filter(p => p.estado === 'vendido').length;
+
+      // Si estamos en Apartados, mostramos primero los Pedidos Multipieza Agrupados
+      let htmlPedidos = '';
+      if (db.filtroEstadoActivo === 'apartado' && db.pedidos && db.pedidos.length > 0) {
+        let pedidosFiltrados = db.pedidos;
+        if (db.filtroDuenoActivo !== 'todos') {
+          pedidosFiltrados = db.pedidos.filter(ped => 
+            ped.prendaIds.some(id => {
+              const pr = db.prendas.find(x => x.id === id);
+              return pr && pr.dueno === db.filtroDuenoActivo;
+            })
+          );
+        }
+
+        if (pedidosFiltrados.length > 0) {
+          // Filtro por Zona de Entrega (Vista de Ruta)
+          if (filtroZonaApartadoActiva !== 'todas') {
+            pedidosFiltrados = pedidosFiltrados.filter(ped => (ped.zona || 'Por definir') === filtroZonaApartadoActiva);
+          }
+
+          htmlPedidos = `
+            <div class="col-span-2 space-y-3 mb-2">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="text-solarGold text-sm">📦</span>
+                  <h3 class="text-xs font-black uppercase tracking-wider text-solarGold">Pedidos por Entregar (${pedidosFiltrados.length})</h3>
+                </div>
+              </div>
+
+              <!-- Filtro de Ruta por Zona -->
+              <div class="flex space-x-1.5 overflow-x-auto custom-scroll text-[11px] pb-1">
+                <button onclick="filtrarZonaApartados('todas')" class="px-2.5 py-1 rounded-xl font-black ${filtroZonaApartadoActiva === 'todas' ? 'bg-solarGold text-black shadow-neon-gold' : 'bg-subpanel text-slate-400 border border-slate-800'}">
+                  Todas
+                </button>
+                <button onclick="filtrarZonaApartados('Playas')" class="px-2.5 py-1 rounded-xl font-bold ${filtroZonaApartadoActiva === 'Playas' ? 'bg-solarGold text-black shadow-neon-gold' : 'bg-subpanel text-slate-400 border border-slate-800'}">
+                  Playas
+                </button>
+                <button onclick="filtrarZonaApartados('Alemán')" class="px-2.5 py-1 rounded-xl font-bold ${filtroZonaApartadoActiva === 'Alemán' ? 'bg-solarGold text-black shadow-neon-gold' : 'bg-subpanel text-slate-400 border border-slate-800'}">
+                  Alemán
+                </button>
+                <button onclick="filtrarZonaApartados('Salvatierra')" class="px-2.5 py-1 rounded-xl font-bold ${filtroZonaApartadoActiva === 'Salvatierra' ? 'bg-solarGold text-black shadow-neon-gold' : 'bg-subpanel text-slate-400 border border-slate-800'}">
+                  Salvatierra
+                </button>
+                <button onclick="filtrarZonaApartados('Por definir')" class="px-2.5 py-1 rounded-xl font-bold ${filtroZonaApartadoActiva === 'Por definir' ? 'bg-solarGold text-black shadow-neon-gold' : 'bg-subpanel text-slate-400 border border-slate-800'}">
+                  Por definir
+                </button>
+              </div>
+          `;
+
+          pedidosFiltrados.forEach(ped => {
+            const prendasPed = ped.prendaIds.map(id => db.prendas.find(x => x.id === id)).filter(Boolean);
+            const total = prendasPed.reduce((acc, p) => acc + (parseFloat(p.precio) || 0), 0);
+            const ant = parseFloat(ped.anticipo) || 0;
+            const resta = Math.max(0, total - ant);
+
+            const prendasChips = prendasPed.map(p => `
+              <div class="flex items-center space-x-2 p-1.5 rounded-xl bg-panel/80 border border-slate-800 text-[11px]">
+                <img src="${p.foto}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0">
+                <span class="truncate text-white font-bold flex-1">${p.marca ? `[${p.marca}] ` : ''}${p.desc} (${p.talla})</span>
+                <span class="font-black text-neonGreen">$${p.precio}</span>
+              </div>
+            `).join('');
+
+            htmlPedidos += `
+              <div class="bg-panel border-2 border-solarGold/40 rounded-3xl p-3.5 space-y-3 shadow-neon-gold">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <span class="text-[9px] font-black uppercase text-solarGold tracking-wider bg-solarGold/10 px-2 py-0.5 rounded-full border border-solarGold/30">Entrega: ${ped.zona || 'Puesto'}</span>
+                    <h4 class="text-sm font-black text-white mt-1">${ped.cliente}</h4>
+                    <span class="text-[10px] text-slate-400 font-bold">${ped.telefono || 'Sin teléfono'} • ${ped.fecha}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[10px] text-slate-400 block font-bold">Resta cobrar:</span>
+                    <span class="text-base font-black text-neonGreen glow-green">$${resta}</span>
+                    <span class="text-[9px] text-slate-400 block">Total: $${total} ${ant > 0 ? `(Ant: $${ant})` : ''}</span>
+                  </div>
+                </div>
+
+                <div class="space-y-1 max-h-32 overflow-y-auto custom-scroll">
+                  ${prendasChips}
+                </div>
+
+                <!-- Botones Rápidos de WhatsApp y Copiar -->
+                <div class="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-800">
+                  <button onclick="enviarMensajeRutaWhatsApp('${ped.id}')" class="col-span-1 py-2 px-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-[9px] font-black active:scale-95 flex items-center justify-center gap-1 hover:bg-emerald-500 hover:text-white transition-all">
+                    <i class="fa-brands fa-whatsapp text-xs"></i> Mensaje Ruta
+                  </button>
+                  <button onclick="copiarMensajeRutaWhatsApp('${ped.id}')" class="col-span-1 py-2 px-1 bg-subpanel text-solarGold border border-slate-700 rounded-xl text-[9px] font-black active:scale-95 flex items-center justify-center gap-1 hover:border-solarGold">
+                    <i class="fa-solid fa-copy text-xs"></i> Copiar
+                  </button>
+                  <button onclick="abrirChatLimpioWhatsApp('${ped.id}')" class="col-span-1 py-2 px-1 bg-subpanel text-slate-300 border border-slate-700 rounded-xl text-[9px] font-bold active:scale-95 flex items-center justify-center gap-1">
+                    <i class="fa-regular fa-comment-dots text-electricCyan text-xs"></i> Chat
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                  <button onclick="abrirModalGestionarPedido('${ped.id}')" class="py-2.5 px-3 bg-solarGold text-black font-black text-xs rounded-xl shadow-neon-gold active:scale-95 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-cart-shopping"></i> Entregar / Cobrar
+                  </button>
+                  <button onclick="abrirModalGestionarPedido('${ped.id}')" class="py-2.5 px-3 bg-subpanel text-slate-200 border border-slate-700 font-bold text-xs rounded-xl active:scale-95 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-solarGold"></i> Ajustar Piezas
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+
+          htmlPedidos += `</div>`;
+        }
+      }
+
+      if (lista.length === 0 && !htmlPedidos) {
+        grid.innerHTML = '<div class="col-span-2 text-center py-16 text-slate-500 text-xs">No hay prendas en este apartado.</div>';
+        return;
+      }
+
+      if (htmlPedidos) {
+        grid.innerHTML = htmlPedidos;
+      }
+
+      lista.forEach(p => {
+        const enPedido = modoSeleccionPedido && prendasSeleccionadasPedido.includes(p.id);
+        const card = document.createElement('div');
+        card.className = `card-box relative bg-panel border ${enPedido ? 'border-solarGold ring-2 ring-solarGold/60 shadow-neon-gold' : 'border-slate-800'} rounded-3xl overflow-hidden shadow-lg flex flex-col transition-all cursor-pointer`;
+        if (modoSeleccionPedido) {
+          card.onclick = (e) => togglePrendaEnPedido(p.id, e);
+        }
+
+        const badgeColor = p.dueno === 'Zak' ? 'bg-electricCyan/20 text-electricCyan border-electricCyan/40' :
+                           p.dueno === 'Ema' ? 'bg-solarGold/20 text-solarGold border-solarGold/40' :
+                           'bg-emerald-400/20 text-emerald-400 border-emerald-400/40';
+
+        const sem = calcularSemaforoAntiguedad(p.fechaIngreso);
+
+        card.innerHTML = `
+          <div class="h-36 bg-subpanel relative overflow-hidden">
+            <img src="${p.foto}" class="w-full h-full object-cover">
+            
+            <!-- Dueño Tag o Checkbox de Pedido -->
+            <div class="absolute top-2.5 left-2.5 flex items-center space-x-1">
+              ${modoSeleccionPedido ? `
+                <div class="w-6 h-6 rounded-lg ${enPedido ? 'bg-solarGold text-black' : 'bg-black/80 text-white border border-slate-600'} flex items-center justify-center text-xs font-black shadow-md">
+                  ${enPedido ? '✓' : '+'}
+                </div>
+              ` : `
+                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border backdrop-blur-md ${badgeColor}">
+                  ${p.dueno}
+                </span>
+              `}
+            </div>
+
+            <!-- Talla, Semáforo y Botón Editar (Esquina superior derecha en columna limpia) -->
+            <div class="absolute top-2.5 right-2.5 flex flex-col items-end space-y-1.5">
+              <div class="flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full ${sem.color}" title="Antigüedad: ${sem.texto}"></span>
+                <span class="text-[10px] font-black bg-black/85 text-white px-2 py-0.5 rounded-lg border border-slate-700 backdrop-blur-md flex items-center gap-1">
+                  <span>${p.genero === 'Mujer' ? '👩' : p.genero === 'Unisex' ? '🚻' : '👨'}</span>
+                  <span>${p.talla}</span>
+                </span>
+              </div>
+              <!-- Botón Editar Flotante justo debajo de la talla -->
+              <button onclick="abrirModalEditarPrenda('${p.id}', event)" title="Editar prenda" class="w-7 h-7 rounded-xl bg-black/80 text-electricCyan border border-electricCyan/40 flex items-center justify-center backdrop-blur-md active:scale-90 shadow-md hover:bg-electricCyan hover:text-black transition-all">
+                <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+              </button>
+            </div>
+
+            <!-- Marca Tag (Esquina inferior izquierda de la foto) -->
+            ${p.marca ? `
+              <span class="absolute bottom-2 left-2 text-[10px] font-black bg-black/85 text-slate-200 px-2 py-0.5 rounded-md border border-slate-700">
+                ${p.marca}
+              </span>
+            ` : ''}
+          </div>
+
+          <div class="p-3 flex-1 flex flex-col justify-between space-y-2">
+            <p class="text-xs font-bold leading-tight line-clamp-2 text-slate-200">${p.desc}</p>
+            
+            <div class="flex items-center justify-between pt-1 border-t border-slate-800/80">
+              <div class="flex items-center space-x-1">
+                <span class="text-base font-black text-neonGreen glow-green">$${p.precio}</span>
+                <button onclick="eliminarPrenda('${p.id}', event)" title="Eliminar" class="p-1 text-slate-500 hover:text-roseNeon active:scale-90 transition-colors">
+                  <i class="fa-solid fa-trash-can text-[10px]"></i>
+                </button>
+              </div>
+              
+              <div class="flex items-center space-x-1.5">
+                ${p.estado === 'disponible' ? `
+                  <button onclick="abrirModalApartar('${p.id}')" title="Apartar" class="px-2.5 py-1 text-[10px] font-black rounded-xl bg-solarGold/15 text-solarGold border border-solarGold/30 active:scale-95">
+                    Apartar
+                  </button>
+                  <button onclick="abrirModalCobroDirecto('${p.id}')" class="px-3 py-1 text-[10px] font-black rounded-xl bg-gradient-to-r from-neonGreen to-neonGreenDark text-black shadow-neon-green active:scale-95">
+                    Cobrar
+                  </button>
+                ` : p.estado === 'apartado' ? `
+                  <button onclick="abrirModalLiquidarApartado('${p.id}')" class="px-3 py-1 text-[10px] font-black rounded-xl bg-solarGold text-black font-black active:scale-95">
+                    Liquidar
+                  </button>
+                ` : `
+                  <span class="text-[9px] uppercase font-bold text-slate-500">Vendida</span>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filtrarDueno(dueno) {
+      db.filtroDuenoActivo = dueno;
+      document.querySelectorAll('.btn-filter').forEach(b => {
+        const active = b.dataset.dueno === dueno;
+        b.className = `btn-filter px-3.5 py-1.5 rounded-xl font-black text-xs transition-all ${
+          active ? 'bg-gradient-to-r from-neonGreen to-neonGreenDark text-black shadow-neon-green' : 'bg-subpanel text-slate-400 border border-slate-800'
+        }`;
+      });
+      renderInventario();
+    }
+
+    function filtrarEstado(estado) {
+      db.filtroEstadoActivo = estado;
+      ['Disp', 'Apart', 'Vend'].forEach(e => {
+        const match = (e === 'Disp' && estado === 'disponible') || (e === 'Apart' && estado === 'apartado') || (e === 'Vend' && estado === 'vendido');
+        const badge = document.getElementById(`badgeFiltro${e}`);
+        if (badge) {
+          badge.className = match ? 'cursor-pointer font-black text-neonGreen underline' : 'cursor-pointer font-medium text-slate-400 hover:text-white';
+        }
+      });
+      renderInventario();
+    }
+
+    function filtrarInventario() {
+      renderInventario();
+    }
+
+    function eliminarPrenda(id, event) {
+      if (event) event.stopPropagation();
+      const prenda = db.prendas.find(p => p.id === id);
+      if (!prenda) return;
+      if (confirm(`¿Eliminar prenda "${prenda.desc}"?`)) {
+        db.prendas = db.prendas.filter(p => p.id !== id);
+        guardarStorage();
+        renderInventario();
+        renderResumenPorPersona();
+        actualizarTotalesDeuda();
+      }
+    }
+
+    // COBRO DIRECTO INDIVIDUAL
+        // EDITAR PRENDAS DEL INVENTARIO (EN PUESTO / APARTADAS)
+    function abrirModalEditarPrenda(id, event) {
+      if (event) event.stopPropagation();
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('editPrendaId').value = p.id;
+      document.getElementById('editPrendaFotoPreview').src = p.foto;
+      document.getElementById('editPrendaDesc').value = p.desc || '';
+      document.getElementById('editPrendaPrecio').value = p.precio || '';
+      document.getElementById('editPrendaCosto').value = p.costo || '';
+      document.getElementById('editPrendaTalla').value = p.talla || 'M';
+      document.getElementById('editPrendaDueno').value = p.dueno || 'Zak';
+      document.getElementById('editPrendaCondicion').value = p.condicion || 'Nuevo';
+      document.getElementById('editPrendaGenero').value = p.genero || 'Hombre';
+
+      // Marcas dinámicas
+      const selectMarca = document.getElementById('editPrendaMarca');
+      selectMarca.innerHTML = '';
+      db.marcas.forEach(m => {
+        selectMarca.innerHTML += `<option value="${m}" ${m === p.marca ? 'selected' : ''}>${m}</option>`;
+      });
+
+      document.getElementById('modalEditarPrenda').classList.remove('hidden');
+    }
+
+    function cerrarModalEditarPrenda() {
+      document.getElementById('modalEditarPrenda').classList.add('hidden');
+    }
+
+    function cambiarFotoPrenda(input) {
+      if (input.files && input.files[0]) {
+        comprimirImagen(input.files[0], 800, 800, 0.72, function(url) {
+          document.getElementById('editPrendaFotoPreview').src = url;
+        });
+      }
+    }
+
+    function guardarEdicionPrendaInventario() {
+      const id = document.getElementById('editPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      const precio = parseFloat(document.getElementById('editPrendaPrecio').value);
+      if (!precio || isNaN(precio) || precio <= 0) {
+        alert('Por favor ingresa un precio válido.');
+        return;
+      }
+
+      p.marca = document.getElementById('editPrendaMarca').value;
+      p.desc = document.getElementById('editPrendaDesc').value.trim() || `${p.marca} ${p.condicion} (${p.talla})`;
+      p.precio = precio;
+      p.costo = parseFloat(document.getElementById('editPrendaCosto').value) || 0;
+      p.talla = document.getElementById('editPrendaTalla').value;
+      p.dueno = document.getElementById('editPrendaDueno').value;
+      p.condicion = document.getElementById('editPrendaCondicion').value;
+      p.genero = document.getElementById('editPrendaGenero').value;
+      p.foto = document.getElementById('editPrendaFotoPreview').src;
+
+      guardarStorage();
+      cerrarModalEditarPrenda();
+      renderInventario();
+      renderResumenPorPersona();
+      actualizarTotalesDeuda();
+      alert('¡Prenda actualizada correctamente en el inventario!');
+    }
+
+    function abrirModalCobroDirecto(id) {
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('cobroModalPrendaId').value = p.id;
+      document.getElementById('cobroModalTitulo').innerText = `${p.marca} - ${p.desc}`;
+      document.getElementById('cobroModalPrecio').value = p.precio;
+      document.getElementById('cobroModalDueno').innerText = p.dueno;
+      document.getElementById('cobroModalTalla').innerText = p.talla;
+      document.getElementById('pagoRecibidoModal').value = '';
+      document.getElementById('cambioCalculadoModal').innerText = '$0';
+      setMetodoCobroModal('Efectivo');
+
+      document.getElementById('modalCobroDirecto').classList.remove('hidden');
+    }
+
+    function cerrarModalCobro() {
+      document.getElementById('modalCobroDirecto').classList.add('hidden');
+    }
+
+    function setMetodoCobroModal(metodo) {
+      db.metodoCobroModal = metodo;
+      const isEfec = metodo === 'Efectivo';
+      document.getElementById('btnModalEfec').className = `py-2 rounded-xl border text-xs font-black ${isEfec ? 'border-neonGreen bg-neonGreen/20 text-neonGreen' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      document.getElementById('btnModalTrans').className = `py-2 rounded-xl border text-xs font-black ${!isEfec ? 'border-electricCyan bg-electricCyan/20 text-electricCyan' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      document.getElementById('seccionModalEfectivo').classList.toggle('hidden', !isEfec);
+      document.getElementById('seccionModalQR').classList.toggle('hidden', isEfec);
+    }
+
+    function setRecibidoModal(monto) {
+      document.getElementById('pagoRecibidoModal').value = monto;
+      calcularCambioCobro();
+    }
+
+    function setRecibidoModalExacto() {
+      document.getElementById('pagoRecibidoModal').value = document.getElementById('cobroModalPrecio').value;
+      calcularCambioCobro();
+    }
+
+    function calcularCambioCobro() {
+      const precio = parseFloat(document.getElementById('cobroModalPrecio').value) || 0;
+      const rec = parseFloat(document.getElementById('pagoRecibidoModal').value) || 0;
+      document.getElementById('cambioCalculadoModal').innerText = `$${Math.max(0, rec - precio)}`;
+    }
+
+    function confirmarCobroDirecto() {
+      const id = document.getElementById('cobroModalPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      const precioCobrado = parseFloat(document.getElementById('cobroModalPrecio').value) || p.precio;
+      const ahora = new Date();
+      const fechaStr = ahora.toISOString().split('T')[0];
+      const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      p.estado = 'vendido';
+      p.fechaVenta = `${fechaStr} ${horaStr}`;
+      p.precioVentaReal = precioCobrado;
+      p.plazaVenta = db.plazaActual;
+      p.liquidado = false;
+
+      db.ventas.unshift({
+        prendaId: p.id,
+        desc: p.desc,
+        marca: p.marca,
+        dueno: p.dueno,
+        precioCobrado: precioCobrado,
+        metodo: db.metodoCobroModal,
+        plaza: db.plazaActual,
+        fecha: fechaStr,
+        hora: horaStr
+      });
+
+      guardarStorage();
+      cerrarModalCobro();
+      renderInventario();
+      renderResumenPorPersona();
+      actualizarTotalesDeuda();
+      renderLiquidacion();
+      renderHistorialVentas();
+      alert(`¡Venta registrada con éxito por $${precioCobrado}!`);
+    }
+
+        // MÓDULO DE PEDIDOS MULTIPIEZA / ENTREGAS POR REDES
+    let modoSeleccionPedido = false;
+    let prendasSeleccionadasPedido = [];
+    let metodoCobroPedidoActivo = 'Efectivo';
+
+    function toggleModoPedido() {
+      modoSeleccionPedido = !modoSeleccionPedido;
+      const btn = document.getElementById('btnModoPedido');
+      const bar = document.getElementById('barPedidoMultipieza');
+
+      if (modoSeleccionPedido) {
+        db.filtroEstadoActivo = 'disponible';
+        filtrarEstado('disponible');
+        prendasSeleccionadasPedido = [];
+        btn.className = 'py-2.5 px-3 bg-solarGold text-black border border-solarGold rounded-xl text-xs font-black shadow-neon-gold active:scale-95 flex items-center gap-1.5';
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Elige piezas...';
+        bar.classList.remove('hidden');
+        actualizarBarraPedido();
+      } else {
+        cancelarModoPedido();
+      }
+      renderInventario();
+    }
+
+    function cancelarModoPedido() {
+      modoSeleccionPedido = false;
+      prendasSeleccionadasPedido = [];
+      const btn = document.getElementById('btnModoPedido');
+      const bar = document.getElementById('barPedidoMultipieza');
+      if (btn) {
+        btn.className = 'py-2.5 px-3 bg-solarGold/15 text-solarGold border border-solarGold/40 rounded-xl text-xs font-black active:scale-95 flex items-center gap-1.5 shadow-sm hover:bg-solarGold hover:text-black transition-all';
+        btn.innerHTML = '<i class="fa-solid fa-boxes-packing"></i> + Pedido';
+      }
+      if (bar) bar.classList.add('hidden');
+      renderInventario();
+    }
+
+    function togglePrendaEnPedido(id, event) {
+      if (event) event.stopPropagation();
+      const idx = prendasSeleccionadasPedido.indexOf(id);
+      if (idx > -1) {
+        prendasSeleccionadasPedido.splice(idx, 1);
+      } else {
+        prendasSeleccionadasPedido.push(id);
+      }
+      actualizarBarraPedido();
+      renderInventario();
+    }
+
+    function actualizarBarraPedido() {
+      const cant = prendasSeleccionadasPedido.length;
+      let total = 0;
+      prendasSeleccionadasPedido.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (p) total += parseFloat(p.precio) || 0;
+      });
+
+      document.getElementById('txtConteoPedido').innerText = `${cant} prenda${cant !== 1 ? 's' : ''} seleccionada${cant !== 1 ? 's' : ''}`;
+      document.getElementById('txtMontoPedido').innerText = `Total: $${total} MXN`;
+    }
+
+    // ESTADO PARA FILTRO DE RUTA EN APARTADOS
+    let filtroZonaApartadoActiva = 'todas';
+    function filtrarZonaApartados(zona) {
+      filtroZonaApartadoActiva = zona;
+      renderInventario();
+    }
+
+    // LECTOR INTELIGENTE DE MENSAJES DE WHATSAPP / REDES (CON LIMPIEZA DE TALLAS)
+    function extraerDatosMensajeWhatsApp() {
+      const txt = (document.getElementById('inputTextoWhatsAppMama')?.value || '').trim();
+      if (!txt) {
+        alert('Por favor pega primero el texto del mensaje en la caja.');
+        return;
+      }
+
+      // 1. Teléfono: buscar secuencia de 10 dígitos
+      const telMatch = txt.match(/(?:\+?52\s*)?(?:\(?(\d{3})\)?[-.\s]*)?(\d{3})[-.\s]*(\d{4})/);
+      if (telMatch) {
+        const fullDigits = telMatch[0].replace(/\D/g, '');
+        const cleanTel = fullDigits.length === 12 && fullDigits.startsWith('52') ? fullDigits.slice(2) : fullDigits;
+        if (cleanTel.length === 10) {
+          document.getElementById('pedidoClienteTel').value = cleanTel;
+        }
+      }
+
+      // 2. Total / Dinero: buscar "$600", "600 pesos", "por 600", "total 600"
+      const precioMatch = txt.match(/(?:\$|por\s+|total\s*(?:de)?\s*\$?\s*|en\s+|pesos\s*\$?\s*)(\d{2,5})(?:\s*pesos|\s*mxn)?/i)
+                       || txt.match(/(\d{2,5})\s*(?:pesos|mxn)/i);
+      if (precioMatch && precioMatch[1]) {
+        document.getElementById('pedidoTotalMonto').value = precioMatch[1];
+      }
+
+      // 3. Cantidad de prendas (números o palabras escritas)
+      const mapaNumeros = {
+        'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4,
+        'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10
+      };
+
+      let cantDetectada = 0;
+      const cantPalabraMatch = txt.match(/\b(un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(?:piezas?|prendas?|playeras?|shorts?|pants?|chamarras?|ropa)/i);
+      if (cantPalabraMatch && mapaNumeros[cantPalabraMatch[1].toLowerCase()]) {
+        cantDetectada = mapaNumeros[cantPalabraMatch[1].toLowerCase()];
+      } else {
+        const cantDigitoMatch = txt.match(/\b(\d{1,2})\s*(?:piezas?|prendas?|playeras?|shorts?|pants?|chamarras?)/i);
+        if (cantDigitoMatch) cantDetectada = parseInt(cantDigitoMatch[1]);
+      }
+      if (cantDetectada > 0) {
+        document.getElementById('pedidoCantPiezasInput').value = cantDetectada;
+      }
+
+      // 4. Detalle / Tipo de prenda (OMITIENDO TALLAS como XS, S, M, L, XL, XXL)
+      const prendasRegex = /(?:playeras?\s*(?:polo|deportivas?)?|shorts?\s*(?:deportivos?)?|pants?|chamarras?|conjuntos?|leggings?|sudaderas?|camisas?)/gi;
+      const prendasEncontradas = txt.match(prendasRegex);
+      if (prendasEncontradas && prendasEncontradas.length > 0) {
+        let detalleTexto = [...new Set(prendasEncontradas.map(p => p.trim()))].join(', ');
+        // Si detectó cantidad, anteponerla de forma natural (ej. "3 playeras")
+        if (cantDetectada > 0 && !new RegExp(`^${cantDetectada}\\b`, 'i').test(detalleTexto)) {
+          detalleTexto = `${cantDetectada} ${detalleTexto}`;
+        }
+        document.getElementById('pedidoDetallePrendas').value = detalleTexto;
+      }
+
+      // 5. Zona de entrega: POR DEFECTO QUEDA EN "Por definir" salvo mención explícita
+      if (/playas/i.test(txt)) {
+        document.getElementById('pedidoZonaEntrega').value = 'Playas';
+      } else if (/alem[aá]n/i.test(txt)) {
+        document.getElementById('pedidoZonaEntrega').value = 'Alemán';
+      } else if (/salvatierra/i.test(txt)) {
+        document.getElementById('pedidoZonaEntrega').value = 'Salvatierra';
+      } else if (/domicilio|entrega|internet/i.test(txt)) {
+        document.getElementById('pedidoZonaEntrega').value = 'Internet / Domicilio';
+      } else {
+        document.getElementById('pedidoZonaEntrega').value = 'Por definir';
+      }
+
+      // 6. Nombre del cliente
+      const nomMatch = txt.match(/(?:persona|cliente|para|se llama|con)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,3})/i)
+                    || txt.match(/(?:el|la)?\s*(?:se[ñn]or|se[ñn]ora|sr|sra)?\s*([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)/);
+      
+      if (nomMatch && nomMatch[1]) {
+        let nomLimpio = nomMatch[1].replace(/\b(me|encargó|pidió|quiere|le|dijo|xs|xxl|xl|l|m|s)\b/gi, '').trim();
+        document.getElementById('pedidoClienteNombre').value = nomLimpio;
+      }
+
+      calcularRestantePedido();
+      alert('⚡ ¡Datos extraídos con éxito! Revisa los campos y confirma.');
+    }
+
+    // CONSTRUCTOR DEL MENSAJE DE RUTA CON REGLA INTELIGENTE DE ANTICIPO
+    function construirTextoMensajeRuta(ped) {
+      const cant = ped.cantPiezas || ped.prendaIds.length || 1;
+      let detalle = ped.detalle || (ped.prendaIds.map(id => {
+        const pr = db.prendas.find(x => x.id === id);
+        return pr ? pr.desc : '';
+      }).filter(Boolean).join(', ') || 'Prendas seleccionadas');
+
+      // Limpieza de tallas en el detalle
+      detalle = detalle.replace(/\b(XS|XXL|XL|L|M|S)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+
+      const prendasPed = ped.prendaIds.map(id => db.prendas.find(x => x.id === id)).filter(Boolean);
+      const total = ped.total || prendasPed.reduce((acc, p) => acc + (parseFloat(p.precio) || 0), 0);
+      const ant = parseFloat(ped.anticipo) || 0;
+      const resta = Math.max(0, total - ant);
+      const zona = ped.zona || 'Por definir';
+
+      // Línea de total inteligente: solo menciona anticipo si realmente dejó
+      let lineaTotal = `💰 Total: $${total} MXN`;
+      if (ant > 0) {
+        lineaTotal = `💰 Total: $${total} MXN (Anticipo: $${ant} | Resta: $${resta})`;
+      }
+
+      return `¡Hola! 😊 Mi nombre es Christian, mucho gusto. ¿Tengo el gusto con ${ped.cliente}?
+
+El día de hoy estoy organizando y programando las entregas de ropa, por lo que me estoy coordinando para realizar la ruta correspondiente.
+
+📦 En tu caso tengo programado entregarte: ${cant} prenda(s)
+👕 Detalles del pedido: ${detalle}
+${lineaTotal}
+📍 Zona: ${zona}
+
+🗓️ Días y puntos fijos de entrega (de 7:00 am a 3:00 pm):
+- Lunes: Playas
+- Miércoles: Alemán
+- Jueves: Salvatierra
+
+Los demás días me voy coordinando y sacando nuevas rutas conforme a la cantidad de clientes y ventas que van saliendo.
+
+Avísame en qué parte te ubicas exactamente para ver si me queda de paso en la ruta o agendarte en el punto más cercano. 🙌
+
+¡Muchas gracias!`;
+    }
+
+    function enviarMensajeRutaWhatsApp(pedidoId) {
+      const ped = (db.pedidos || []).find(x => x.id === pedidoId);
+      if (!ped || !ped.telefono) {
+        alert('Este pedido no tiene número de teléfono registrado.');
+        return;
+      }
+      const tel = ped.telefono.replace(/\D/g, '');
+      const texto = construirTextoMensajeRuta(ped);
+      const url = `https://api.whatsapp.com/send?phone=52${tel}&text=${encodeURIComponent(texto)}`;
+      window.open(url, '_blank');
+    }
+
+    function copiarMensajeRutaWhatsApp(pedidoId) {
+      const ped = (db.pedidos || []).find(x => x.id === pedidoId);
+      if (!ped) return;
+      const texto = construirTextoMensajeRuta(ped);
+      navigator.clipboard.writeText(texto).then(() => {
+        alert('📋 ¡Mensaje de ruta copiado al portapapeles! Listo para pegar en Messenger, Facebook o WhatsApp.');
+      });
+    }
+
+    function abrirChatLimpioWhatsApp(pedidoId) {
+      const ped = (db.pedidos || []).find(x => x.id === pedidoId);
+      if (!ped || !ped.telefono) {
+        alert('Este pedido no tiene número de teléfono registrado.');
+        return;
+      }
+      const tel = ped.telefono.replace(/\D/g, '');
+      const url = `https://api.whatsapp.com/send?phone=52${tel}`;
+      window.open(url, '_blank');
+    }
+
+    function abrirModalCrearPedido() {
+      if (prendasSeleccionadasPedido.length === 0) {
+        alert('Por favor selecciona al menos una prenda para el pedido.');
+        return;
+      }
+
+      document.getElementById('inputTextoWhatsAppMama').value = '';
+      document.getElementById('pedidoClienteNombre').value = '';
+      document.getElementById('pedidoClienteTel').value = '';
+      document.getElementById('pedidoAnticipo').value = '';
+
+      let total = 0;
+      const descripcionesPrendas = [];
+      const cont = document.getElementById('listaPrendasCrearPedido');
+      cont.innerHTML = '';
+
+      prendasSeleccionadasPedido.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (!p) return;
+        total += parseFloat(p.precio) || 0;
+        descripcionesPrendas.push(p.desc);
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2 rounded-xl bg-panel border border-slate-700 text-xs';
+        row.innerHTML = `
+          <div class="flex items-center space-x-2 truncate">
+            <img src="${p.foto}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+            <span class="truncate text-white font-bold">${p.marca ? `[${p.marca}] ` : ''}${p.desc} (${p.talla})</span>
+          </div>
+          <span class="font-black text-neonGreen ml-2">$${p.precio}</span>
+        `;
+        cont.appendChild(row);
+      });
+
+      document.getElementById('pedidoCantPrendas').innerText = prendasSeleccionadasPedido.length;
+      document.getElementById('pedidoCantPiezasInput').value = prendasSeleccionadasPedido.length;
+      document.getElementById('pedidoDetallePrendas').value = descripcionesPrendas.slice(0, 3).join(', ');
+      document.getElementById('pedidoTotalMonto').value = total;
+      calcularRestantePedido();
+
+      document.getElementById('modalCrearPedido').classList.remove('hidden');
+    }
+
+    function cerrarModalCrearPedido() {
+      document.getElementById('modalCrearPedido').classList.add('hidden');
+    }
+
+    function calcularRestantePedido() {
+      const total = parseFloat(document.getElementById('pedidoTotalMonto').value) || 0;
+      const ant = parseFloat(document.getElementById('pedidoAnticipo').value) || 0;
+      const resta = Math.max(0, total - ant);
+      document.getElementById('pedidoRestaCobrar').innerText = `$${resta} MXN`;
+    }
+
+    function guardarNuevoPedidoMultipieza() {
+      const nombre = document.getElementById('pedidoClienteNombre').value.trim() || 'Cliente sin nombre';
+      const tel = document.getElementById('pedidoClienteTel').value.trim();
+      const zona = document.getElementById('pedidoZonaEntrega').value;
+      const anticipo = parseFloat(document.getElementById('pedidoAnticipo').value) || 0;
+      const cantPiezas = parseInt(document.getElementById('pedidoCantPiezasInput').value) || prendasSeleccionadasPedido.length || 1;
+      const detalle = document.getElementById('pedidoDetallePrendas').value.trim() || 'Prendas seleccionadas';
+      const totalMonto = parseFloat(document.getElementById('pedidoTotalMonto').value) || 0;
+
+      const nuevoPedido = {
+        id: 'PED-' + Date.now(),
+        cliente: nombre,
+        telefono: tel,
+        zona: zona,
+        cantPiezas: cantPiezas,
+        detalle: detalle,
+        total: totalMonto,
+        anticipo: anticipo,
+        fecha: getFechaLocal(),
+        prendaIds: [...prendasSeleccionadasPedido],
+        estado: 'pendiente'
+      };
+
+      if (!db.pedidos) db.pedidos = [];
+      db.pedidos.unshift(nuevoPedido);
+
+      // Pasar cada prenda a estado 'apartado' vinculada a este pedido
+      prendasSeleccionadasPedido.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (p) {
+          p.estado = 'apartado';
+          p.pedidoId = nuevoPedido.id;
+          p.apartadoData = {
+            cliente: nombre,
+            telefono: tel,
+            anticipo: anticipo,
+            pedidoId: nuevoPedido.id,
+            fecha: nuevoPedido.fecha
+          };
+        }
+      });
+
+      guardarStorage();
+      cerrarModalCrearPedido();
+      cancelarModoPedido();
+      renderInventario();
+      renderResumenPorPersona();
+      filtrarEstado('apartado');
+
+      // Abrir modal de confirmación con opciones directas de WhatsApp
+      if (tel) {
+        document.getElementById('postSavePedidoId').value = nuevoPedido.id;
+        document.getElementById('postSaveClienteResumen').innerText = `${nombre} • ${cantPiezas} prenda(s) • Total: $${totalMonto} MXN (${zona})`;
+        document.getElementById('modalConfirmacionPedidoWhatsApp').classList.remove('hidden');
+      } else {
+        alert(`¡Pedido de ${cantPiezas} prendas registrado para ${nombre}! Se retiraron del perchero y quedaron en Apartados.`);
+      }
+    }
+
+    function cerrarModalPostSaveWhatsApp() {
+      document.getElementById('modalConfirmacionPedidoWhatsApp').classList.add('hidden');
+    }
+
+    // GESTIONAR Y ENTREGAR PEDIDO MULTIPIEZA
+    function abrirModalGestionarPedido(pedidoId) {
+      const ped = (db.pedidos || []).find(x => x.id === pedidoId);
+      if (!ped) return;
+
+      document.getElementById('gestPedidoId').value = ped.id;
+      document.getElementById('gestPedidoTitulo').innerText = `Pedido #${ped.id.slice(-4)}`;
+      document.getElementById('gestPedidoCliente').innerText = ped.cliente;
+      document.getElementById('gestPedidoZona').innerText = `Entrega: ${ped.zona || 'Puesto'} • ${ped.fecha}`;
+
+      const waBtn = document.getElementById('gestPedidoWhatsAppBtn');
+      if (ped.telefono) {
+        waBtn.innerHTML = `
+          <div class="flex items-center space-x-1">
+            <button onclick="enviarMensajeRutaWhatsApp('${ped.id}')" class="py-1 px-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl text-[10px] font-black active:scale-95 flex items-center gap-1">
+              <i class="fa-brands fa-whatsapp"></i> Mensaje Ruta
+            </button>
+            <button onclick="abrirChatLimpioWhatsApp('${ped.id}')" class="py-1 px-2 bg-subpanel text-slate-300 border border-slate-700 rounded-xl text-[10px] font-bold active:scale-95">
+              <i class="fa-regular fa-comment-dots text-electricCyan"></i>
+            </button>
+          </div>
+        `;
+      } else {
+        waBtn.innerHTML = '<span class="text-[10px] text-slate-500 italic">Sin teléfono</span>';
+      }
+
+      setMetodoCobroPedido('Efectivo');
+      renderPrendasEnGestionPedido(ped.id);
+      document.getElementById('modalGestionarPedido').classList.remove('hidden');
+    }
+
+    function cerrarModalGestionarPedido() {
+      document.getElementById('modalGestionarPedido').classList.add('hidden');
+    }
+
+    function renderPrendasEnGestionPedido(pedidoId) {
+      const ped = (db.pedidos || []).find(x => x.id === pedidoId);
+      if (!ped) return;
+
+      const cont = document.getElementById('listaPrendasGestionarPedido');
+      cont.innerHTML = '';
+
+      let total = 0;
+      ped.prendaIds.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (!p) return;
+        total += parseFloat(p.precio) || 0;
+
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2 rounded-2xl bg-subpanel border border-slate-700 text-xs';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2 truncate flex-1 pr-1">
+            <img src="${p.foto}" class="w-9 h-9 rounded-xl object-cover flex-shrink-0">
+            <div class="truncate">
+              <span class="font-black text-white block truncate">${p.marca ? `[${p.marca}] ` : ''}${p.desc}</span>
+              <span class="text-[10px] text-slate-400">Talla ${p.talla} • Dueño: <strong class="text-neonGreen">${p.dueno}</strong></span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0">
+            <span class="font-black text-neonGreen text-xs">$${p.precio}</span>
+            <button onclick="quitarPrendaDePedido('${ped.id}', '${p.id}')" title="El cliente no quiso esta pieza" class="py-1 px-2 bg-rose-500/20 text-roseNeon border border-rose-500/40 rounded-xl text-[10px] font-black active:scale-90 flex items-center gap-1 hover:bg-rose-500 hover:text-white transition-all">
+              <i class="fa-solid fa-arrow-rotate-left"></i> Devolver
+            </button>
+          </div>
+        `;
+        cont.appendChild(item);
+      });
+
+      const ant = parseFloat(ped.anticipo) || 0;
+      const aCobrar = Math.max(0, total - ant);
+
+      document.getElementById('gestPedidoTotal').innerText = `$${total} MXN`;
+      document.getElementById('gestPedidoAnticipo').innerText = `-$${ant} MXN`;
+      document.getElementById('gestPedidoACobrar').innerText = `$${aCobrar} MXN`;
+      document.getElementById('pagoRecibidoPedido').value = '';
+      document.getElementById('cambioCalculadoPedido').innerText = '$0';
+    }
+
+    function quitarPrendaDePedido(pedidoId, prendaId) {
+      const ped = (db.pedidos || []).find(x => x.id === pedidoId);
+      const p = db.prendas.find(x => x.id === prendaId);
+      if (!ped || !p) return;
+
+      if (confirm(`¿Regresar "${p.desc}" al puesto? (El cliente no se la llevará)`)) {
+        // Regresa la prenda al perchero
+        p.estado = 'disponible';
+        delete p.pedidoId;
+        delete p.apartadoData;
+
+        // Quita la prenda del pedido
+        ped.prendaIds = ped.prendaIds.filter(id => id !== prendaId);
+
+        guardarStorage();
+        renderInventario();
+        renderResumenPorPersona();
+
+        if (ped.prendaIds.length === 0) {
+          alert('Se devolvieron todas las prendas al perchero. El pedido quedó cancelado.');
+          db.pedidos = db.pedidos.filter(x => x.id !== pedidoId);
+          guardarStorage();
+          cerrarModalGestionarPedido();
+          renderInventario();
+        } else {
+          renderPrendasEnGestionPedido(pedidoId);
+          alert(`Prenda devuelta al puesto. La cuenta del pedido se recalculó automáticamente.`);
+        }
+      }
+    }
+
+    function setMetodoCobroPedido(metodo) {
+      metodoCobroPedidoActivo = metodo;
+      const isEfec = metodo === 'Efectivo';
+      document.getElementById('btnGestEfec').className = `py-2 rounded-xl border text-xs font-black ${isEfec ? 'border-neonGreen bg-neonGreen/20 text-neonGreen' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      document.getElementById('btnGestTrans').className = `py-2 rounded-xl border text-xs font-black ${!isEfec ? 'border-electricCyan bg-electricCyan/20 text-electricCyan' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      document.getElementById('seccionGestEfectivo').classList.toggle('hidden', !isEfec);
+    }
+
+    function setRecibidoPedidoExacto() {
+      const pedId = document.getElementById('gestPedidoId').value;
+      const ped = (db.pedidos || []).find(x => x.id === pedId);
+      if (!ped) return;
+      let total = 0;
+      ped.prendaIds.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (p) total += parseFloat(p.precio) || 0;
+      });
+      const aCobrar = Math.max(0, total - (parseFloat(ped.anticipo) || 0));
+      document.getElementById('pagoRecibidoPedido').value = aCobrar;
+      calcularCambioPedido();
+    }
+
+    function calcularCambioPedido() {
+      const pedId = document.getElementById('gestPedidoId').value;
+      const ped = (db.pedidos || []).find(x => x.id === pedId);
+      if (!ped) return;
+      let total = 0;
+      ped.prendaIds.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (p) total += parseFloat(p.precio) || 0;
+      });
+      const aCobrar = Math.max(0, total - (parseFloat(ped.anticipo) || 0));
+      const rec = parseFloat(document.getElementById('pagoRecibidoPedido').value) || 0;
+      document.getElementById('cambioCalculadoPedido').innerText = `$${Math.max(0, rec - aCobrar)}`;
+    }
+
+    function confirmarEntregaPedidoCobrado() {
+      const pedId = document.getElementById('gestPedidoId').value;
+      const ped = (db.pedidos || []).find(x => x.id === pedId);
+      if (!ped || ped.prendaIds.length === 0) return;
+
+      const ahora = new Date();
+      const fechaStr = getFechaLocal();
+      const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Pasar cada prenda a vendida y registrar venta
+      ped.prendaIds.forEach(id => {
+        const p = db.prendas.find(x => x.id === id);
+        if (p) {
+          p.estado = 'vendido';
+          p.fechaVenta = `${fechaStr} ${horaStr}`;
+          p.precioVentaReal = p.precio;
+          p.plazaVenta = ped.zona || db.plazaActual;
+          p.liquidado = false;
+          delete p.pedidoId;
+          delete p.apartadoData;
+
+          db.ventas.unshift({
+            prendaId: p.id,
+            desc: p.desc,
+            marca: p.marca,
+            dueno: p.dueno,
+            precioCobrado: p.precio,
+            metodo: metodoCobroPedidoActivo,
+            plaza: p.plazaVenta,
+            fecha: fechaStr,
+            hora: horaStr,
+            cliente: ped.cliente
+          });
+        }
+      });
+
+      // Eliminar pedido de la lista de pendientes
+      db.pedidos = db.pedidos.filter(x => x.id !== pedId);
+
+      guardarStorage();
+      cerrarModalGestionarPedido();
+      renderInventario();
+      renderResumenPorPersona();
+      actualizarTotalesDeuda();
+      renderLiquidacion();
+      renderHistorialVentas();
+      alert(`¡Entrega finalizada con éxito! Se cobraron las prendas y se actualizaron las cuentas.`);
+    }
+
+    function cancelarPedidoCompletoDevolver() {
+      const pedId = document.getElementById('gestPedidoId').value;
+      const ped = (db.pedidos || []).find(x => x.id === pedId);
+      if (!ped) return;
+
+      if (confirm(`¿Cancelar todo el pedido de ${ped.cliente}? Las ${ped.prendaIds.length} prendas regresarán como disponibles al perchero.`)) {
+        ped.prendaIds.forEach(id => {
+          const p = db.prendas.find(x => x.id === id);
+          if (p) {
+            p.estado = 'disponible';
+            delete p.pedidoId;
+            delete p.apartadoData;
+          }
+        });
+
+        db.pedidos = db.pedidos.filter(x => x.id !== pedId);
+        guardarStorage();
+        cerrarModalGestionarPedido();
+        renderInventario();
+        renderResumenPorPersona();
+        alert('Pedido cancelado. Todas las prendas volvieron a estar disponibles en el perchero.');
+      }
+    }
+
+
+    // APARTADOS (CON ANTICIPO)
+    function abrirModalApartar(id) {
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('apartarPrendaId').value = p.id;
+      document.getElementById('apartarModalTitulo').innerText = `${p.marca} - ${p.desc}`;
+      document.getElementById('apartarPrecioTotal').value = p.precio;
+      document.getElementById('apartarAnticipo').value = '';
+      document.getElementById('apartarCliente').value = '';
+      document.getElementById('apartarTelefono').value = '';
+      document.getElementById('modalApartarPrenda').classList.remove('hidden');
+    }
+
+    function cerrarModalApartar() {
+      document.getElementById('modalApartarPrenda').classList.add('hidden');
+    }
+
+    function guardarApartadoConfirmado() {
+      const id = document.getElementById('apartarPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      const cliente = document.getElementById('apartarCliente').value.trim() || 'Cliente Mostrador';
+      const tel = document.getElementById('apartarTelefono').value.trim();
+      const anticipo = parseFloat(document.getElementById('apartarAnticipo').value) || 0;
+
+      p.estado = 'apartado';
+      p.apartadoData = {
+        cliente: cliente,
+        telefono: tel,
+        anticipo: anticipo,
+        fecha: getFechaLocal()
+      };
+
+      guardarStorage();
+      cerrarModalApartar();
+      renderInventario();
+      renderResumenPorPersona();
+      alert(`¡Prenda apartada con anticipo de $${anticipo}!`);
+    }
+
+    function abrirModalLiquidarApartado(id) {
+      const p = db.prendas.find(x => x.id === id);
+      if (!p || !p.apartadoData) return;
+
+      document.getElementById('liqApPrendaId').value = p.id;
+      document.getElementById('liqApDesc').innerText = `${p.marca} - ${p.desc}`;
+      document.getElementById('liqApCliente').innerText = `${p.apartadoData.cliente} (${p.apartadoData.telefono || 'Sin tel'})`;
+      document.getElementById('liqApAnticipo').innerText = `$${p.apartadoData.anticipo || 0}`;
+      const resta = Math.max(0, p.precio - (p.apartadoData.anticipo || 0));
+      document.getElementById('liqApResta').innerText = `$${resta}`;
+
+      document.getElementById('modalLiquidarApartado').classList.remove('hidden');
+    }
+
+    function cerrarModalLiquidarApartado() {
+      document.getElementById('modalLiquidarApartado').classList.add('hidden');
+    }
+
+    function confirmarLiquidacionApartado() {
+      const id = document.getElementById('liqApPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      const ahora = new Date();
+      p.estado = 'vendido';
+      p.fechaVenta = ahora.toISOString().split('T')[0];
+      p.precioVentaReal = p.precio;
+      p.liquidado = false;
+
+      db.ventas.unshift({
+        prendaId: p.id,
+        desc: p.desc,
+        marca: p.marca,
+        dueno: p.dueno,
+        precioCobrado: p.precio,
+        metodo: 'Efectivo',
+        plaza: db.plazaActual,
+        fecha: p.fechaVenta
+      });
+
+      guardarStorage();
+      cerrarModalLiquidarApartado();
+      renderInventario();
+      renderResumenPorPersona();
+      actualizarTotalesDeuda();
+      renderLiquidacion();
+      alert('¡Apartado liquidado y completado!');
+    }
+
+    function cancelarApartadoRegresarPuesto() {
+      const id = document.getElementById('liqApPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      if (confirm('¿Cancelar apartado y regresar la prenda al inventario del puesto?')) {
+        p.estado = 'disponible';
+        delete p.apartadoData;
+        guardarStorage();
+        cerrarModalLiquidarApartado();
+        renderInventario();
+        renderResumenPorPersona();
+      }
+    }
+
+    // LIQUIDACIÓN Y DEUDAS PERMANENTES
+    function actualizarTotalesDeuda() {
+      let deudaEma = 0, deudaMiguel = 0;
+      db.prendas.filter(p => p.estado === 'vendido' && !p.liquidado).forEach(p => {
+        const val = p.precioVentaReal || p.precio;
+        if (p.dueno === 'Ema') deudaEma += val;
+        if (p.dueno === 'Miguel') deudaMiguel += val;
+      });
+      document.getElementById('deudaEma').innerText = `$${deudaEma}`;
+      document.getElementById('deudaMiguel').innerText = `$${deudaMiguel}`;
+    }
+
+    function mostrarLiquidacionPersona(persona) {
+      db.personaLiquidacionActiva = persona;
+      document.getElementById('btnLiqEma').className = `flex-1 py-1.5 rounded-xl border font-black text-xs ${persona === 'Ema' ? 'border-solarGold bg-solarGold/20 text-solarGold shadow-neon-gold' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      document.getElementById('btnLiqMiguel').className = `flex-1 py-1.5 rounded-xl border font-black text-xs ${persona === 'Miguel' ? 'border-emerald-400 bg-emerald-400/20 text-emerald-400 shadow-neon-green' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      renderLiquidacion();
+    }
+
+        // HISTORIAL Y BITÁCORA DE VENTAS
+    let filtroHistorialPersonaActivo = 'todos';
+        function getFechaLocal() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    let filtroHistorialFechaActiva = getFechaLocal();
+    let verTodasLasFechas = false;
+
+    function inicializarHistorialFecha() {
+      const el = document.getElementById('filtroHistorialFecha');
+      if (el) el.value = filtroHistorialFechaActiva;
+    }
+
+    function setFechaHistorialHoy() {
+      verTodasLasFechas = false;
+      filtroHistorialFechaActiva = getFechaLocal();
+      const el = document.getElementById('filtroHistorialFecha');
+      if (el) el.value = filtroHistorialFechaActiva;
+      document.getElementById('btnHistorialTodas').className = 'px-3 py-2 bg-subpanel text-slate-300 border border-slate-700 text-xs font-bold rounded-xl active:scale-95';
+      renderHistorialVentas();
+    }
+
+    function setFechaHistorialTodas() {
+      verTodasLasFechas = true;
+      document.getElementById('btnHistorialTodas').className = 'px-3 py-2 bg-neonGreen/20 text-neonGreen border border-neonGreen/50 text-xs font-black rounded-xl active:scale-95';
+      renderHistorialVentas();
+    }
+
+    function filtrarHistorialPersona(persona) {
+      filtroHistorialPersonaActivo = persona;
+      ['todos', 'Zak', 'Ema', 'Miguel'].forEach(p => {
+        const btn = document.getElementById(`btnHistPers${p.charAt(0).toUpperCase() + p.slice(1)}`);
+        if (!btn) return;
+        const active = p === persona;
+        if (p === 'todos') {
+          btn.className = `px-3 py-1.5 rounded-xl font-black text-xs transition-all ${active ? 'bg-gradient-to-r from-neonGreen to-neonGreenDark text-black shadow-neon-green' : 'bg-subpanel text-slate-300 border border-slate-700'}`;
+        } else if (p === 'Zak') {
+          btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${active ? 'bg-electricCyan/20 text-electricCyan border border-electricCyan shadow-neon-cyan' : 'bg-subpanel text-electricCyan border border-electricCyan/30'}`;
+        } else if (p === 'Ema') {
+          btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${active ? 'bg-solarGold/20 text-solarGold border border-solarGold shadow-neon-gold' : 'bg-subpanel text-solarGold border border-solarGold/30'}`;
+        } else {
+          btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${active ? 'bg-emerald-400/20 text-emerald-400 border border-emerald-400 shadow-neon-green' : 'bg-subpanel text-emerald-400 border border-emerald-400/30'}`;
+        }
+      });
+      renderHistorialVentas();
+    }
+
+    function renderHistorialVentas() {
+      const listaEl = document.getElementById('listaHistorialVentas');
+      if (!listaEl) return;
+      listaEl.innerHTML = '';
+
+      const fechaInput = document.getElementById('filtroHistorialFecha')?.value;
+      if (!verTodasLasFechas && fechaInput) {
+        filtroHistorialFechaActiva = fechaInput;
+      }
+
+      // Prendas vendidas (tanto las que están pendientes como las ya liquidadas)
+      let vendidas = db.prendas.filter(p => p.estado === 'vendido');
+
+      // Filtrar por persona
+      if (filtroHistorialPersonaActivo !== 'todos') {
+        vendidas = vendidas.filter(p => p.dueno === filtroHistorialPersonaActivo);
+      }
+
+      // Filtrar por fecha
+      if (!verTodasLasFechas) {
+        vendidas = vendidas.filter(p => {
+          const f = p.fechaVenta ? p.fechaVenta.split(' ')[0] : '';
+          return f === filtroHistorialFechaActiva;
+        });
+        document.getElementById('historialPeriodoTexto').innerText = `Día: ${filtroHistorialFechaActiva}`;
+      } else {
+        document.getElementById('historialPeriodoTexto').innerText = `Histórico Completo (Todas las fechas)`;
+      }
+
+      // Conteos y montos
+      let totalMonto = 0;
+      vendidas.forEach(p => {
+        totalMonto += parseFloat(p.precioVentaReal || p.precio) || 0;
+      });
+
+      document.getElementById('historialContadorBadge').innerText = `${vendidas.length} vendidas`;
+      document.getElementById('historialMontoTotal').innerText = `$${totalMonto} MXN`;
+
+      if (vendidas.length === 0) {
+        listaEl.innerHTML = `<p class="text-center text-xs text-slate-500 py-6">No se encontraron ventas con los filtros seleccionados.</p>`;
+        return;
+      }
+
+      vendidas.forEach(p => {
+        const item = document.createElement('div');
+        item.onclick = () => abrirModalEditarVenta(p.id);
+        item.className = 'flex items-center justify-between p-2.5 rounded-2xl bg-subpanel border border-slate-800 text-xs hover:border-electricCyan/50 cursor-pointer active:scale-98 transition-all';
+
+        const monto = p.precioVentaReal || p.precio;
+        const duenoColor = p.dueno === 'Zak' ? 'text-electricCyan' : p.dueno === 'Ema' ? 'text-solarGold' : 'text-emerald-400';
+        
+        // Estado de liquidación
+        let liqBadge = '';
+        if (p.dueno === 'Zak') {
+          liqBadge = '<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-electricCyan border border-cyan-500/30">Mío</span>';
+        } else if (p.liquidado) {
+          liqBadge = '<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-neonGreen border border-emerald-500/30 font-bold">✓ Pagada</span>';
+        } else {
+          liqBadge = '<span class="text-[9px] px-1.5 py-0.5 rounded bg-solarGold/15 text-solarGold border border-solarGold/30 font-bold">⏳ Por pagar</span>';
+        }
+
+        item.innerHTML = `
+          <div class="flex items-center space-x-2.5 flex-1 pr-2">
+            <div class="w-11 h-11 rounded-xl bg-panel overflow-hidden border border-slate-700 flex-shrink-0">
+              <img src="${p.foto}" class="w-full h-full object-cover">
+            </div>
+            <div class="truncate">
+              <div class="flex items-center space-x-1.5">
+                <span class="font-black text-white truncate">${p.marca ? `[${p.marca}] ` : ''}${p.desc}</span>
+              </div>
+              <div class="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5">
+                <span class="font-bold ${duenoColor}">Dueño: ${p.dueno}</span>
+                <span>•</span>
+                <span>Talla ${p.talla}</span>
+                <span>•</span>
+                <span>${p.fechaVenta || 'Hoy'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0 space-y-1">
+            <span class="font-black text-neonGreen text-sm block">$${monto}</span>
+            ${liqBadge}
+          </div>
+        `;
+        listaEl.appendChild(item);
+      });
+    }
+
+    // MODAL EDITAR / DETALLE DE VENTA
+        function setEditEstadoLiquidacion(isPagado) {
+      document.getElementById('editVentaLiquidadoVal').value = isPagado ? 'true' : 'false';
+      const btnPend = document.getElementById('btnEditLiqPendiente');
+      const btnPag = document.getElementById('btnEditLiqPagado');
+      const badgeLiq = document.getElementById('editVentaBadgeLiquidado');
+      const dueno = document.getElementById('editVentaDueno').value;
+
+      if (!isPagado) {
+        btnPend.className = 'py-2 rounded-xl border border-solarGold bg-solarGold/20 text-solarGold shadow-neon-gold text-xs font-black';
+        btnPag.className = 'py-2 rounded-xl border border-slate-700 bg-subpanel text-slate-400 text-xs font-bold';
+        badgeLiq.className = 'absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg text-[10px] font-black border backdrop-blur-md bg-solarGold/20 text-solarGold border-solarGold/40';
+        badgeLiq.innerText = `⏳ Se le debe a ${dueno}`;
+      } else {
+        btnPend.className = 'py-2 rounded-xl border border-slate-700 bg-subpanel text-slate-400 text-xs font-bold';
+        btnPag.className = 'py-2 rounded-xl border border-neonGreen bg-neonGreen/20 text-neonGreen shadow-neon-green text-xs font-black';
+        badgeLiq.className = 'absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg text-[10px] font-black border backdrop-blur-md bg-emerald-500/20 text-neonGreen border-emerald-400/40';
+        badgeLiq.innerText = `✓ Liquidada a ${dueno}`;
+      }
+    }
+
+    function abrirModalEditarVenta(id) {
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      document.getElementById('editVentaPrendaId').value = p.id;
+      document.getElementById('editVentaTitulo').innerText = `${p.marca} - ${p.desc}`;
+      document.getElementById('editVentaFoto').src = p.foto;
+      document.getElementById('editVentaDesc').value = p.desc || '';
+      document.getElementById('editVentaPrecio').value = p.precioVentaReal || p.precio;
+      document.getElementById('editVentaTalla').value = p.talla || 'M';
+      document.getElementById('editVentaDueno').value = p.dueno || 'Zak';
+      document.getElementById('editVentaMetodo').value = p.metodoPago || 'Efectivo';
+      document.getElementById('editVentaFecha').value = p.fechaVenta ? p.fechaVenta.split(' ')[0] : getFechaLocal();
+      document.getElementById('editVentaPlaza').value = p.plazaVenta || db.plazaActual;
+
+      const badgeLiq = document.getElementById('editVentaBadgeLiquidado');
+      const divLiq = document.getElementById('divEditLiquidacion');
+      if (p.dueno === 'Zak') {
+        divLiq.classList.add('hidden');
+        badgeLiq.className = 'absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg text-[10px] font-black border backdrop-blur-md bg-cyan-500/20 text-electricCyan border-cyan-400/40';
+        badgeLiq.innerText = 'Prenda Propia';
+      } else {
+        divLiq.classList.remove('hidden');
+        setEditEstadoLiquidacion(!!p.liquidado);
+      }
+
+      document.getElementById('modalEditarVenta').classList.remove('hidden');
+    }
+
+    function cerrarModalEditarVenta() {
+      document.getElementById('modalEditarVenta').classList.add('hidden');
+    }
+
+    function guardarEdicionVenta() {
+      const id = document.getElementById('editVentaPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      p.desc = document.getElementById('editVentaDesc').value.trim() || p.desc;
+      const inputPrec = parseFloat(document.getElementById('editVentaPrecio').value);
+      p.precioVentaReal = !isNaN(inputPrec) ? inputPrec : p.precio;
+      p.talla = document.getElementById('editVentaTalla').value.trim() || p.talla;
+      p.dueno = document.getElementById('editVentaDueno').value;
+      p.metodoPago = document.getElementById('editVentaMetodo').value;
+      p.fechaVenta = document.getElementById('editVentaFecha').value;
+      p.plazaVenta = document.getElementById('editVentaPlaza').value;
+      
+      // Actualizar estado de liquidación
+      if (p.dueno !== 'Zak') {
+        p.liquidado = document.getElementById('editVentaLiquidadoVal').value === 'true';
+      } else {
+        p.liquidado = true;
+      }
+
+      // Actualizar también en db.ventas si existe
+      const v = db.ventas.find(x => x.prendaId === id);
+      if (v) {
+        v.desc = p.desc;
+        v.precioCobrado = p.precioVentaReal;
+        v.dueno = p.dueno;
+        v.metodo = p.metodoPago;
+        v.fecha = p.fechaVenta;
+        v.plaza = p.plazaVenta;
+      }
+
+      guardarStorage();
+      cerrarModalEditarVenta();
+      renderHistorialVentas();
+      actualizarTotalesDeuda();
+      renderLiquidacion();
+      renderEstadisticas();
+      alert('¡Ajustes de la venta guardados correctamente!');
+    }
+
+    function deshacerVentaRegresarInventario() {
+      const id = document.getElementById('editVentaPrendaId').value;
+      const p = db.prendas.find(x => x.id === id);
+      if (!p) return;
+
+      if (confirm(`¿Deshacer la venta de "${p.desc}" y regresarla como disponible al perchero?`)) {
+        p.estado = 'disponible';
+        p.liquidado = false;
+        delete p.fechaVenta;
+        delete p.precioVentaReal;
+
+        db.ventas = db.ventas.filter(x => x.prendaId !== id);
+
+        guardarStorage();
+        cerrarModalEditarVenta();
+        renderInventario();
+        renderResumenPorPersona();
+        renderHistorialVentas();
+        actualizarTotalesDeuda();
+        renderLiquidacion();
+        renderEstadisticas();
+        alert('Venta deshecha. La prenda volvió a estar disponible en el perchero.');
+      }
+    }
+
+    function renderLiquidacion() {
+      const lista = document.getElementById('listaPiezasLiquidacion');
+      lista.innerHTML = '';
+      const pendientes = db.prendas.filter(p => p.dueno === db.personaLiquidacionActiva && p.estado === 'vendido' && !p.liquidado);
+
+      if (pendientes.length === 0) {
+        lista.innerHTML = `<p class="text-center text-xs text-slate-500 py-6">No hay saldo pendiente por liquidar a ${db.personaLiquidacionActiva}.</p>`;
+        document.getElementById('totalSeleccionadoLiquidar').innerText = '$0';
+        return;
+      }
+
+      pendientes.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2.5 rounded-2xl bg-subpanel border border-slate-800 text-xs';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2.5">
+            <input type="checkbox" data-id="${p.id}" data-precio="${p.precioVentaReal || p.precio}" onchange="recalcularSeleccionLiquidar()" class="chk-liquidar w-4 h-4 rounded text-neonGreen accent-neonGreen">
+            <div>
+              <span class="block font-black text-white">${p.marca ? `[${p.marca}] ` : ''}${p.desc}</span>
+              <span class="text-[10px] text-slate-400">Vendida: ${p.fechaVenta || 'Reciente'}</span>
+            </div>
+          </div>
+          <span class="font-black text-neonGreen text-sm">$${p.precioVentaReal || p.precio}</span>
+        `;
+        lista.appendChild(item);
+      });
+      recalcularSeleccionLiquidar();
+    }
+
+    function recalcularSeleccionLiquidar() {
+      let tot = 0;
+      document.querySelectorAll('.chk-liquidar:checked').forEach(c => {
+        tot += parseFloat(c.dataset.precio) || 0;
+      });
+      document.getElementById('totalSeleccionadoLiquidar').innerText = `$${tot}`;
+    }
+
+    function liquidarPiezasMarcadas() {
+      const marcados = document.querySelectorAll('.chk-liquidar:checked');
+      if (marcados.length === 0) {
+        alert('Marca al menos una prenda que vayas a liquidar.');
+        return;
+      }
+      marcados.forEach(c => {
+        const p = db.prendas.find(x => x.id === c.dataset.id);
+        if (p) p.liquidado = true;
+      });
+      guardarStorage();
+      actualizarTotalesDeuda();
+      renderLiquidacion();
+      renderHistorialVentas();
+      alert(`Se liquidaron ${marcados.length} prendas.`);
+    }
+
+    function enviarCorteWhatsApp(persona) {
+      const pendientes = db.prendas.filter(p => p.dueno === persona && p.estado === 'vendido' && !p.liquidado);
+      if (pendientes.length === 0) {
+        alert(`No hay saldo pendiente por liquidar a ${persona}.`);
+        return;
+      }
+      let tot = 0, txt = '';
+      pendientes.forEach((p, i) => {
+        const val = p.precioVentaReal || p.precio;
+        tot += val;
+        txt += `%0A${i+1}. ${p.marca ? `[${p.marca}] ` : ''}${p.desc} - *$${val}*`;
+      });
+      const msj = `Hola, te comparto el corte de ropa vendida:%0A%0A*TOTAL POR PAGAR: $${tot} MXN*%0APrendas vendidas pendientes:${txt}%0A%0A_Generado desde Zak Select_`;
+      window.open(`https://api.whatsapp.com/send?text=${msj}`, '_blank');
+    }
+
+    // ESTADÍSTICAS TOP VENTAS
+    function renderEstadisticas() {
+      const cont = document.getElementById('estadisticasTopVentas');
+      if (!cont) return;
+
+      const marcasConteo = {};
+      const tallasHombre = {};
+      const tallasMujer = {};
+      const tallasUnisex = {};
+      let ventasHombre = 0, ventasMujer = 0, ventasUnisex = 0;
+
+      db.ventas.forEach(v => {
+        if (v.marca) marcasConteo[v.marca] = (marcasConteo[v.marca] || 0) + 1;
+      });
+
+      db.prendas.filter(p => p.estado === 'vendido').forEach(p => {
+        const gen = p.genero || 'Hombre';
+        if (gen === 'Hombre') {
+          ventasHombre++;
+          if (p.talla) tallasHombre[p.talla] = (tallasHombre[p.talla] || 0) + 1;
+        } else if (gen === 'Mujer') {
+          ventasMujer++;
+          if (p.talla) tallasMujer[p.talla] = (tallasMujer[p.talla] || 0) + 1;
+        } else {
+          ventasUnisex++;
+          if (p.talla) tallasUnisex[p.talla] = (tallasUnisex[p.talla] || 0) + 1;
+        }
+      });
+
+      const topMarca = Object.entries(marcasConteo).sort((a,b) => b[1] - a[1])[0] || ['N/A', 0];
+      const topTallaH = Object.entries(tallasHombre).sort((a,b) => b[1] - a[1])[0] || ['N/A', 0];
+      const topTallaM = Object.entries(tallasMujer).sort((a,b) => b[1] - a[1])[0] || ['N/A', 0];
+
+      cont.innerHTML = `
+        <div class="p-2.5 rounded-2xl bg-subpanel border border-slate-800">
+          <span class="text-[10px] text-slate-400 block font-bold">Marca Más Vendida</span>
+          <span class="text-sm font-black text-neonGreen">${topMarca[0]}</span>
+          <span class="text-[9px] text-slate-400 block">${topMarca[1]} vendidas</span>
+        </div>
+        <div class="p-2.5 rounded-2xl bg-subpanel border border-slate-800">
+          <span class="text-[10px] text-slate-400 block font-bold">Ventas por Sexo</span>
+          <span class="text-xs font-black text-white block mt-0.5">👨 ${ventasHombre} • 👩 ${ventasMujer} • 🚻 ${ventasUnisex}</span>
+          <span class="text-[9px] text-slate-400 block">${ventasHombre + ventasMujer + ventasUnisex} piezas en total</span>
+        </div>
+        <div class="p-2.5 rounded-2xl bg-subpanel border border-slate-800">
+          <span class="text-[10px] text-electricCyan block font-bold">👨 Talla Top Hombre</span>
+          <span class="text-sm font-black text-white">Talla ${topTallaH[0]}</span>
+          <span class="text-[9px] text-slate-400 block">${topTallaH[1]} vendidas</span>
+        </div>
+        <div class="p-2.5 rounded-2xl bg-subpanel border border-slate-800">
+          <span class="text-[10px] text-roseNeon block font-bold">👩 Talla Top Mujer</span>
+          <span class="text-sm font-black text-white">Talla ${topTallaM[0]}</span>
+          <span class="text-[9px] text-slate-400 block">${topTallaM[1]} vendidas</span>
+        </div>
+      `;
+    }
+
+    // BUSCADOR FOTO
+                // COMPARADOR VISUAL LOCAL POR COLOR E HISTOGRAMA DE PIXELES
+    function calcularSimilitudVisual(imgDataScanned, imgDataCandidate, callback) {
+      // Crear canvas ocultos para procesar 16x16 pixels
+      const canvas1 = document.createElement('canvas');
+      const canvas2 = document.createElement('canvas');
+      canvas1.width = 16; canvas1.height = 16;
+      canvas2.width = 16; canvas2.height = 16;
+      const ctx1 = canvas1.getContext('2d');
+      const ctx2 = canvas2.getContext('2d');
+
+      const im1 = new Image();
+      im1.crossOrigin = "anonymous";
+      im1.onload = function() {
+        ctx1.drawImage(im1, 0, 0, 16, 16);
+        const data1 = ctx1.getImageData(0, 0, 16, 16).data;
+
+        const im2 = new Image();
+        im2.crossOrigin = "anonymous";
+        im2.onload = function() {
+          ctx2.drawImage(im2, 0, 0, 16, 16);
+          const data2 = ctx2.getImageData(0, 0, 16, 16).data;
+
+          // Calcular distancia de color promedio (RGB)
+          let sumaDiff = 0;
+          let totalPixels = 16 * 16;
+          for (let i = 0; i < data1.length; i += 4) {
+            const dr = Math.abs(data1[i] - data2[i]);
+            const dg = Math.abs(data1[i+1] - data2[i+1]);
+            const db = Math.abs(data1[i+2] - data2[i+2]);
+            sumaDiff += (dr + dg + db) / 3;
+          }
+          const promedioDiff = sumaDiff / totalPixels;
+          // Menor diferencia = Mayor similitud (score de 0 a 100)
+          const score = Math.max(0, 100 - (promedioDiff / 2.55));
+          callback(score);
+        };
+        im2.src = imgDataCandidate;
+      };
+      im1.src = imgDataScanned;
+    }
+
+    function procesarFotoBusqueda(input) {
+      if (input.files && input.files[0]) {
+        comprimirImagen(input.files[0], 800, 800, 0.72, function(dataUrl) {
+          const img = document.getElementById('previewBuscarFoto');
+          img.src = dataUrl;
+          img.classList.remove('hidden');
+          document.getElementById('iconBuscarFoto').classList.add('hidden');
+
+          const res = document.getElementById('resultadoBusquedaIA');
+          res.classList.remove('hidden');
+          res.innerHTML = `<p class="text-xs text-solarGold text-center py-4 animate-pulse"><i class="fa-solid fa-wand-magic-sparkles"></i> Analizando colores y buscando coincidencia en el perchero...</p>`;
+
+          setTimeout(() => {
+            const disponibles = db.prendas.filter(p => p.estado === 'disponible');
+            
+            if (disponibles.length === 0) {
+              res.innerHTML = `
+                <div class="flex items-center space-x-2 text-xs text-roseNeon">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span class="font-black">Sin prendas disponibles:</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1">No hay ninguna prenda disponible en el perchero en este momento.</p>
+              `;
+              return;
+            }
+
+            // Evaluar similitud visual con cada prenda disponible
+            let mejorMatch = disponibles[0];
+            let mejorScore = -1;
+
+            let evaluadas = 0;
+            disponibles.forEach(p => {
+              calcularSimilitudVisual(dataUrl, p.foto, (score) => {
+                evaluadas++;
+                if (score > mejorScore) {
+                  mejorScore = score;
+                  mejorMatch = p;
+                }
+
+                // Cuando terminen de evaluarse todas, mostramos el resultado definitivo
+                if (evaluadas === disponibles.length) {
+                  mostrarResultadoBusqueda(dataUrl, mejorMatch);
+                }
+              });
+            });
+          }, 300);
+        });
+      }
+    }
+
+    function mostrarResultadoBusqueda(scannedDataUrl, match) {
+      const res = document.getElementById('resultadoBusquedaIA');
+      res.innerHTML = `
+        <div class="flex items-center space-x-2 text-xs mb-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-neonGreen animate-pulse shadow-[0_0_8px_#00ff66]"></span>
+          <span class="font-black text-white">Coincidencia Visual Encontrada:</span>
+        </div>
+
+        <!-- Comparación Fotográfica Lado a Lado -->
+        <div class="grid grid-cols-2 gap-2 bg-panel/80 p-2 rounded-2xl border border-slate-800 text-center text-[10px]">
+          <div>
+            <span class="text-slate-400 font-bold block mb-1">Foto Escaneada</span>
+            <div class="h-24 rounded-xl overflow-hidden border border-slate-700 bg-subpanel">
+              <img src="${scannedDataUrl}" class="w-full h-full object-cover">
+            </div>
+          </div>
+          <div>
+            <span class="text-neonGreen font-bold block mb-1">Original en Sistema</span>
+            <div class="h-24 rounded-xl overflow-hidden border border-neonGreen/40 bg-subpanel">
+              <img src="${match.foto}" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-2 space-y-1">
+          <p class="text-sm font-black text-neonGreen glow-green">${match.marca ? `[${match.marca}] ` : ''}${match.desc}</p>
+          <div class="text-xs text-slate-300 space-y-1 bg-panel/70 p-2.5 rounded-xl border border-slate-800">
+            <p>• Dueño: <strong class="text-white">${match.dueno}</strong> (${match.genero || 'Hombre'})</p>
+            <p>• Talla: <strong class="text-white">${match.talla}</strong> | Estado: <span class="uppercase font-bold text-neonGreen">Disponible</span></p>
+            <p>• Precio: <strong class="text-base text-neonGreen font-black">$${match.precio} MXN</strong></p>
+          </div>
+        </div>
+
+        <div class="pt-2 grid grid-cols-2 gap-2">
+          <button onclick="abrirModalCobroDirecto('${match.id}')" class="py-2.5 px-3 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-xs rounded-xl shadow-neon-green active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-cart-shopping"></i> Cobrar Prenda
+          </button>
+          <button onclick="marcarComoRobo('${match.id}')" class="py-2.5 px-3 bg-rose-500/20 text-roseNeon border border-rose-500/40 font-black rounded-xl text-xs active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-triangle-exclamation"></i> Reportar Merma
+          </button>
+        </div>
+      `;
+    }
+
+
+    function marcarComoRobo(id) {
+      const p = db.prendas.find(x => x.id === id);
+      if (p) {
+        p.estado = 'merma';
+        guardarStorage();
+        renderInventario();
+        renderResumenPorPersona();
+        alert('Prenda retirada del inventario como merma.');
+      }
+    }
+
+    // QR BANCARIO
+    function guardarNuevoQR(input) {
+      if (input.files && input.files[0]) {
+        comprimirImagen(input.files[0], 500, 500, 0.8, function(url) {
+          db.qrBancario = url;
+          document.getElementById('imgQRBancario').src = url;
+          guardarStorage();
+          alert('¡Código QR bancario guardado con éxito!');
+        });
+      }
+    }
+
+    function abrirSubirQR() {
+      document.getElementById('fileUploadQR').click();
+    }
+
+    // MARCAS, CONDICIÓN, TALLAS
+    function renderBotonesMarcas() {
+      const cont = document.getElementById('contenedorMarcasAlta');
+      cont.innerHTML = '';
+      if (!db.marcaSeleccionadaAlta && db.marcas.length > 0) db.marcaSeleccionadaAlta = db.marcas[0];
+      document.getElementById('altaMarcaSeleccionada').value = db.marcaSeleccionadaAlta;
+
+      db.marcas.forEach(marca => {
+        const sel = marca === db.marcaSeleccionadaAlta;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => { db.marcaSeleccionadaAlta = marca; renderBotonesMarcas(); };
+        btn.className = `px-3 py-1.5 rounded-xl font-black text-xs transition-all ${
+          sel ? 'bg-neonGreen text-black shadow-neon-green border border-neonGreen' : 'bg-panel text-slate-300 border border-slate-700'
+        }`;
+        btn.innerText = marca;
+        cont.appendChild(btn);
+      });
+    }
+
+    function abrirModalNuevaMarca() {
+      document.getElementById('modalNuevaMarca').classList.remove('hidden');
+      document.getElementById('inputNombreMarca').focus();
+    }
+    function cerrarModalNuevaMarca() {
+      document.getElementById('modalNuevaMarca').classList.add('hidden');
+      document.getElementById('inputNombreMarca').value = '';
+    }
+    function guardarNuevaMarca() {
+      const nom = document.getElementById('inputNombreMarca').value.trim();
+      if (nom && !db.marcas.includes(nom)) {
+        db.marcas.unshift(nom);
+        db.marcaSeleccionadaAlta = nom;
+        guardarStorage();
+        renderBotonesMarcas();
+      }
+      cerrarModalNuevaMarca();
+    }
+
+    function abrirModalConfig() {
+      const wrap = document.getElementById('listaMarcasConfig');
+      wrap.innerHTML = '';
+      db.marcas.forEach((m, idx) => {
+        wrap.innerHTML += `
+          <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-panel border border-slate-700 text-xs font-bold text-slate-200">
+            <span>${m}</span>
+            <button onclick="eliminarMarcaConfig(${idx})" class="text-roseNeon hover:text-white pl-1"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        `;
+      });
+      document.getElementById('modalConfig').classList.remove('hidden');
+    }
+    function cerrarModalConfig() { document.getElementById('modalConfig').classList.add('hidden'); }
+    function eliminarMarcaConfig(idx) {
+      db.marcas.splice(idx, 1);
+      guardarStorage();
+      abrirModalConfig();
+      renderBotonesMarcas();
+    }
+
+        function seleccionarGeneroAlta(gen) {
+      db.generoSeleccionadoAlta = gen;
+      document.getElementById('altaGeneroSeleccionado').value = gen;
+      ['Hombre', 'Mujer', 'Unisex'].forEach(g => {
+        const btn = document.getElementById(`btnGen${g}`);
+        if (!btn) return;
+        const active = g === gen;
+        if (g === 'Hombre') {
+          btn.className = `py-2 rounded-xl font-black text-xs border ${active ? 'border-electricCyan bg-electricCyan/20 text-electricCyan shadow-neon-cyan' : 'border-slate-700 bg-subpanel text-slate-400'} active:scale-95`;
+        } else if (g === 'Mujer') {
+          btn.className = `py-2 rounded-xl font-black text-xs border ${active ? 'border-roseNeon bg-roseNeon/20 text-roseNeon shadow-md' : 'border-slate-700 bg-subpanel text-slate-400'} active:scale-95`;
+        } else {
+          btn.className = `py-2 rounded-xl font-black text-xs border ${active ? 'border-neonGreen bg-neonGreen/20 text-neonGreen shadow-neon-green' : 'border-slate-700 bg-subpanel text-slate-400'} active:scale-95`;
+        }
+      });
+    }
+
+    function seleccionarCondicion(cond) {
+      db.condicionSeleccionadaAlta = cond;
+      document.getElementById('altaCondicionSeleccionada').value = cond;
+      ['Nuevo', 'ComoNuevo', 'Seminuevo'].forEach(c => {
+        const el = document.getElementById(`btnCond${c}`);
+        if (!el) return;
+        const match = (c === 'Nuevo' && cond === 'Nuevo') || (c === 'ComoNuevo' && cond === 'Como nuevo') || (c === 'Seminuevo' && cond === 'Seminuevo');
+        el.className = `py-2 rounded-xl font-black text-xs ${match ? 'border border-neonGreen bg-neonGreen/20 text-neonGreen shadow-neon-green' : 'border border-slate-700 bg-subpanel text-slate-400'}`;
+      });
+    }
+
+    function seleccionarTallaAlta(talla) {
+      db.tallaSeleccionadaAlta = talla;
+      document.getElementById('altaTallaSeleccionada').value = talla;
+      document.querySelectorAll('#contenedorTallasAlta .btn-talla').forEach(b => {
+        b.className = `btn-talla py-2 rounded-xl font-black text-xs ${b.innerText === talla ? 'border border-neonGreen bg-neonGreen/20 text-neonGreen shadow-neon-green' : 'border border-slate-700 bg-subpanel text-slate-400'}`;
+      });
+    }
+
+    function seleccionarDuenoAlta(dueno) {
+      db.duenoSeleccionadoAlta = dueno;
+      ['Zak', 'Ema', 'Miguel'].forEach(d => {
+        const btn = document.getElementById(`btnAlta${d}`);
+        const active = d === dueno;
+        if (d === 'Zak') btn.className = `btn-dueno-alta py-2 rounded-xl font-black text-xs ${active ? 'border border-electricCyan bg-electricCyan/20 text-electricCyan shadow-neon-cyan' : 'border border-slate-700 bg-subpanel text-slate-400'}`;
+        else if (d === 'Ema') btn.className = `btn-dueno-alta py-2 rounded-xl font-black text-xs ${active ? 'border border-solarGold bg-solarGold/20 text-solarGold shadow-neon-gold' : 'border border-slate-700 bg-subpanel text-slate-400'}`;
+        else btn.className = `btn-dueno-alta py-2 rounded-xl font-black text-xs ${active ? 'border border-emerald-400 bg-emerald-400/20 text-emerald-400 shadow-neon-green' : 'border border-slate-700 bg-subpanel text-slate-400'}`;
+      });
+    }
+
+    function registrarGastoPuesto() {
+      const c = document.getElementById('gastoConcepto').value.trim();
+      const m = parseFloat(document.getElementById('gastoMonto').value);
+      if (!c || !m) return;
+      db.gastos.unshift({ concepto: c, monto: m, plaza: db.plazaActual, fecha: getFechaLocal() });
+      document.getElementById('gastoConcepto').value = '';
+      document.getElementById('gastoMonto').value = '';
+      renderGastos();
+      guardarStorage();
+    }
+
+    function renderGastos() {
+      const cont = document.getElementById('listaGastos');
+      cont.innerHTML = '';
+      db.gastos.slice(0, 5).forEach(g => {
+        cont.innerHTML += `<div class="flex justify-between items-center p-2 rounded-xl bg-subpanel border border-slate-800 text-xs"><span>${g.concepto} (${g.plaza})</span><span class="font-black text-roseNeon">-$${g.monto}</span></div>`;
+      });
+    }
+
+    function cambiarPlaza(p) {
+      db.plazaActual = p;
+      document.getElementById('plazaBadge').innerText = p;
+      guardarStorage();
+      renderResumenPorPersona();
+    }
+
+    function toggleBatterySaver() {
+      document.body.classList.toggle('battery-saver');
+      const activo = document.body.classList.contains('battery-saver');
+      document.getElementById('btnBattery').classList.toggle('text-solarGold', activo);
+    }
+
+    function exportarBaseDatos() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+      const dl = document.createElement('a');
+      dl.setAttribute("href", dataStr);
+      dl.setAttribute("download", `ZakSelect_Backup_${getFechaLocal()}.json`);
+      document.body.appendChild(dl);
+      dl.click();
+      dl.remove();
+    }
+
+    function importarBaseDatos(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            db = JSON.parse(e.target.result);
+            guardarStorage();
+            alert('¡Copia de seguridad restaurada correctamente!');
+            location.reload();
+          } catch (err) { alert('Error al leer el archivo JSON.'); }
+        };
+        reader.readAsText(input.files[0]);
+      }
+    }
+  </script>
+</body>
+</html>
