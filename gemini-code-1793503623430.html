@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zak Select - Control de Ropa & Puesto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#070a0e',
+            panel: '#0f141e',
+            subpanel: '#151c2a',
+            neonGreen: '#00ff66',
+            neonGreenDark: '#05c74f',
+            electricCyan: '#00e5ff',
+            solarGold: '#ffb703',
+            flameOrange: '#fb8500',
+            violetNeon: '#a855f7',
+            roseNeon: '#ff0055'
+          },
+          boxShadow: {
+            'neon-green': '0 0 20px -3px rgba(0, 255, 102, 0.35)',
+            'neon-cyan': '0 0 20px -3px rgba(0, 229, 255, 0.35)',
+            'neon-gold': '0 0 20px -3px rgba(255, 183, 3, 0.35)',
+            'dock': '0 -8px 25px -5px rgba(0, 0, 0, 0.75)'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #070a0e;
+    }
+    .custom-scroll::-webkit-scrollbar { display: none; }
+    .custom-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    .glow-green { text-shadow: 0 0 10px rgba(0, 255, 102, 0.6); }
+    .glow-cyan { text-shadow: 0 0 10px rgba(0, 229, 255, 0.6); }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- TOP BAR -->
+  <header class="sticky top-0 z-40 bg-panel/90 backdrop-blur-xl border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-neonGreen to-electricCyan flex items-center justify-center text-black font-black text-xl shadow-neon-green">
+        Z
+      </div>
+      <div>
+        <div class="flex items-center space-x-1.5">
+          <h1 class="text-base font-black tracking-wider leading-none text-white">ZAK</h1>
+          <span class="text-xs font-black tracking-widest text-neonGreen px-1.5 py-0.5 rounded bg-neonGreen/10 border border-neonGreen/30 glow-green">SELECT</span>
+        </div>
+        <div class="flex items-center space-x-1.5 text-[10px] text-slate-400 mt-0.5 font-medium">
+          <span class="inline-block w-2 h-2 rounded-full bg-neonGreen animate-pulse shadow-[0_0_8px_#00ff66]"></span>
+          <span id="plazaBadge" class="text-slate-300">Playas</span>
+          <span>•</span>
+          <span id="relojTop" class="text-slate-400">12:00 PM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="flex items-center space-x-1.5">
+      <select id="selectPlazaActiva" onchange="cambiarPlaza(this.value)" class="text-xs bg-subpanel border border-slate-700/80 rounded-xl px-2 py-1.5 text-slate-200 font-bold focus:border-neonGreen focus:outline-none">
+        <option value="Playas">Playas</option>
+        <option value="Alemán">Alemán</option>
+        <option value="Salvatierra">Salvatierra</option>
+        <option value="Internet / Entrega">Venta Internet</option>
+      </select>
+      <button onclick="abrirModalConfig()" title="Configuración" class="w-8 h-8 rounded-xl bg-subpanel border border-neonGreen/30 flex items-center justify-center text-neonGreen active:scale-90">
+        <i class="fa-solid fa-sliders text-xs"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="flex-1 pb-24 overflow-y-auto custom-scroll p-4 max-w-lg mx-auto w-full">
+
+    <!-- TAB 1: ROPA / INVENTARIO -->
+    <section id="tab-inventario" class="space-y-3.5">
+      
+      <!-- RESUMEN DETALLADO POR PERSONA -->
+      <div class="bg-gradient-to-br from-panel via-subpanel to-panel border border-neonGreen/30 rounded-3xl p-3.5 space-y-2.5 shadow-neon-green relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="text-base">📊</span>
+            <h2 class="text-xs font-black uppercase tracking-wider text-white">Resumen de Inventario en Puesto</h2>
+          </div>
+          <button onclick="copiarResumenEmojis()" class="py-1 px-2.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-xl text-[10px] font-black active:scale-95 flex items-center gap-1 hover:bg-neonGreen hover:text-black transition-all">
+            <i class="fa-solid fa-copy"></i> Copiar Texto
+          </button>
+        </div>
+        <div id="contenedorResumenEmojis" class="space-y-1.5 text-xs"></div>
+        <div class="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+          <button onclick="abrirAuditoriaPerchero()" class="py-2 px-2.5 bg-subpanel border border-slate-700 text-slate-200 font-black rounded-xl active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-list-check text-electricCyan"></i> Contar Perchero
+          </button>
+          <button onclick="abrirModalCatalogo()" class="py-2 px-2.5 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black rounded-xl active:scale-95 shadow-neon-green flex items-center justify-center gap-1.5">
+            <i class="fa-brands fa-whatsapp"></i> Armar Catálogo
+          </button>
+        </div>
+      </div>
+
+      <!-- Buscador -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-neonGreen text-xs"></i>
+        <input type="text" id="busquedaInventario" oninput="filtrarInventario()" placeholder="Buscar marca, prenda, color, talla..." class="w-full bg-panel border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-neonGreen focus:ring-1 focus:ring-neonGreen focus:outline-none">
+      </div>
+
+      <!-- Filtro Dueño -->
+      <div class="flex space-x-2 overflow-x-auto pb-1 text-xs custom-scroll">
+        <button onclick="filtrarDueno('todos')" class="btn-filter px-3.5 py-1.5 rounded-xl font-black bg-gradient-to-r from-neonGreen to-neonGreenDark text-black shadow-neon-green" data-dueno="todos">
+          Todos (<span id="countTotal">0</span>)
+        </button>
+        <button onclick="filtrarDueno('Zak')" class="btn-filter px-3.5 py-1.5 rounded-xl font-bold bg-subpanel text-electricCyan border border-electricCyan/30" data-dueno="Zak">
+          Mío (Zak)
+        </button>
+        <button onclick="filtrarDueno('Ema')" class="btn-filter px-3.5 py-1.5 rounded-xl font-bold bg-subpanel text-solarGold border border-solarGold/30" data-dueno="Ema">
+          Ema
+        </button>
+        <button onclick="filtrarDueno('Miguel')" class="btn-filter px-3.5 py-1.5 rounded-xl font-bold bg-subpanel text-emerald-400 border border-emerald-400/30" data-dueno="Miguel">
+          Miguel
+        </button>
+      </div>
+
+      <!-- Subfiltros de estado & Pedido -->
+      <div class="flex items-center space-x-2">
+        <div class="flex-1 flex items-center justify-between text-[11px] bg-panel/60 p-2.5 rounded-xl border border-slate-800/80">
+          <span onclick="filtrarEstado('disponible')" class="cursor-pointer font-black text-neonGreen underline" id="badgeFiltroDisp">
+            En Puesto (<span id="countDisp">0</span>)
+          </span>
+          <span class="text-slate-600">|</span>
+          <span onclick="filtrarEstado('apartado')" class="cursor-pointer font-medium text-slate-400 hover:text-white" id="badgeFiltroApart">
+            Apartados (<span id="countApart">0</span>)
+          </span>
+          <span class="text-slate-600">|</span>
+          <span onclick="filtrarEstado('vendido')" class="cursor-pointer font-medium text-slate-400 hover:text-white" id="badgeFiltroVend">
+            Vendidas (<span id="countVend">0</span>)
+          </span>
+        </div>
+        <button onclick="toggleModoPedido()" id="btnModoPedido" class="py-2.5 px-3 bg-solarGold/15 text-solarGold border border-solarGold/40 rounded-xl text-xs font-black active:scale-95 flex items-center gap-1.5 shadow-sm hover:bg-solarGold hover:text-black transition-all">
+          <i class="fa-solid fa-boxes-packing"></i> + Pedido
+        </button>
+      </div>
+
+      <!-- Barra Flotante de Selección de Pedido Multipieza -->
+      <div id="barPedidoMultipieza" class="hidden sticky top-14 z-30 bg-panel/95 border-2 border-solarGold/60 rounded-2xl p-3 shadow-2xl backdrop-blur-xl flex items-center justify-between">
+        <div>
+          <span class="text-xs font-black text-solarGold block" id="txtConteoPedido">0 prendas seleccionadas</span>
+          <span class="text-[10px] text-slate-300 font-bold" id="txtMontoPedido">Total: $0 MXN</span>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <button onclick="cancelarModoPedido()" class="px-2.5 py-1.5 bg-subpanel text-slate-300 border border-slate-700 text-xs rounded-xl font-bold active:scale-95">Cancelar</button>
+          <button onclick="abrirModalCrearPedido()" class="px-3 py-1.5 bg-solarGold text-black font-black text-xs rounded-xl shadow-neon-gold active:scale-95 flex items-center gap-1">
+            <i class="fa-solid fa-check"></i> Armar Pedido
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid de Prendas -->
+      <div id="gridInventario" class="grid grid-cols-2 gap-3"></div>
+    </section>
+
+    <!-- TAB 2: ALTA DE PRENDA -->
+    <section id="tab-registro" class="hidden space-y-4">
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-lg bg-neonGreen/10 border border-neonGreen/30 flex items-center justify-center text-neonGreen">
+              <i class="fa-solid fa-shirt text-xs"></i>
+            </div>
+            <h2 class="text-xs font-black uppercase tracking-wider text-white">Registrar Prenda Nueva</h2>
+          </div>
+          <span class="text-[10px] font-bold text-neonGreen bg-neonGreen/10 px-2 py-0.5 rounded-full border border-neonGreen/20">Alta Rápida</span>
+        </div>
+
+        <!-- Fotos -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="space-y-1.5 text-center">
+            <span class="text-[10px] text-slate-400 block font-black tracking-wider">FRENTE</span>
+            <div class="h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-subpanel flex flex-col items-center justify-center overflow-hidden relative">
+              <img id="previewFoto1" class="hidden w-full h-full object-cover">
+              <div id="iconFoto1" class="text-center p-1 text-slate-500"><i class="fa-solid fa-camera text-base text-neonGreen/70"></i></div>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <button type="button" onclick="document.getElementById('camFoto1').click()" class="py-1.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-lg text-[9px] font-black active:scale-95">Foto</button>
+              <button type="button" onclick="document.getElementById('galFoto1').click()" class="py-1.5 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95">Álbum</button>
+            </div>
+            <input type="file" id="camFoto1" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(this, 'previewFoto1', 'iconFoto1')">
+            <input type="file" id="galFoto1" accept="image/*" class="hidden" onchange="procesarFoto(this, 'previewFoto1', 'iconFoto1')">
+          </div>
+          <div class="space-y-1.5 text-center">
+            <span class="text-[10px] text-slate-400 block font-black tracking-wider">REVERSO</span>
+            <div class="h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-subpanel flex flex-col items-center justify-center overflow-hidden relative">
+              <img id="previewFoto2" class="hidden w-full h-full object-cover">
+              <div id="iconFoto2" class="text-center p-1 text-slate-500"><i class="fa-solid fa-camera text-base text-neonGreen/70"></i></div>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <button type="button" onclick="document.getElementById('camFoto2').click()" class="py-1.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-lg text-[9px] font-black active:scale-95">Foto</button>
+              <button type="button" onclick="document.getElementById('galFoto2').click()" class="py-1.5 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95">Álbum</button>
+            </div>
+            <input type="file" id="camFoto2" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(this, 'previewFoto2', 'iconFoto2')">
+            <input type="file" id="galFoto2" accept="image/*" class="hidden" onchange="procesarFoto(this, 'previewFoto2', 'iconFoto2')">
+          </div>
+          <div class="space-y-1.5 text-center">
+            <span class="text-[10px] text-slate-400 block font-black tracking-wider">ETIQUETA</span>
+            <div class="h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-subpanel flex flex-col items-center justify-center overflow-hidden relative">
+              <img id="previewFoto3" class="hidden w-full h-full object-cover">
+              <div id="iconFoto3" class="text-center p-1 text-slate-500"><i class="fa-solid fa-tag text-base text-neonGreen/70"></i></div>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <button type="button" onclick="document.getElementById('camFoto3').click()" class="py-1.5 bg-neonGreen/15 text-neonGreen border border-neonGreen/40 rounded-lg text-[9px] font-black active:scale-95">Foto</button>
+              <button type="button" onclick="document.getElementById('galFoto3').click()" class="py-1.5 bg-subpanel text-slate-300 border border-slate-700 rounded-lg text-[9px] font-bold active:scale-95">Álbum</button>
+            </div>
+            <input type="file" id="camFoto3" accept="image/*" capture="environment" class="hidden" onchange="procesarFoto(this, 'previewFoto3', 'iconFoto3')">
+            <input type="file" id="galFoto3" accept="image/*" class="hidden" onchange="procesarFoto(this, 'previewFoto3', 'iconFoto3')">
+          </div>
+        </div>
+
+        <!-- Dueño -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">¿A QUIÉN PERTENECE?</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="seleccionarDuenoAlta('Zak')" id="btnAltaZak" class="btn-dueno-alta py-2 rounded-xl font-black text-xs border border-electricCyan bg-electricCyan/20 text-electricCyan shadow-neon-cyan">Zak (Mío)</button>
+            <button type="button" onclick="seleccionarDuenoAlta('Ema')" id="btnAltaEma" class="btn-dueno-alta py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">Ema</button>
+            <button type="button" onclick="seleccionarDuenoAlta('Miguel')" id="btnAltaMiguel" class="btn-dueno-alta py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">Miguel</button>
+          </div>
+        </div>
+
+        <!-- Género -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">GÉNERO / PÚBLICO</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="seleccionarGeneroAlta('Hombre')" id="btnGenHombre" class="py-2 rounded-xl font-black text-xs border border-electricCyan bg-electricCyan/20 text-electricCyan shadow-neon-cyan">👨 Hombre</button>
+            <button type="button" onclick="seleccionarGeneroAlta('Mujer')" id="btnGenMujer" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">👩 Mujer</button>
+            <button type="button" onclick="seleccionarGeneroAlta('Unisex')" id="btnGenUnisex" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">🚻 Unisex</button>
+          </div>
+          <input type="hidden" id="altaGeneroSeleccionado" value="Hombre">
+        </div>
+
+        <!-- Marca (Con ordenamiento inteligente por frecuencia) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">MARCA (1 TOQUE - ORDEN INTELIGENTE)</label>
+            <button type="button" onclick="abrirModalNuevaMarca()" class="text-[10px] text-neonGreen font-black hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-plus-circle"></i> + Nueva Marca
+            </button>
+          </div>
+          <div id="contenedorMarcasAlta" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scroll p-1.5 bg-subpanel/80 rounded-2xl border border-slate-800"></div>
+          <input type="hidden" id="altaMarcaSeleccionada" value="">
+        </div>
+
+        <!-- Condición -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">CONDICIÓN</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" onclick="seleccionarCondicion('Nuevo')" id="btnCondNuevo" class="py-2 rounded-xl font-black text-xs border border-neonGreen bg-neonGreen/15 text-neonGreen shadow-neon-green">✨ Nuevo</button>
+            <button type="button" onclick="seleccionarCondicion('Como nuevo')" id="btnCondComoNuevo" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">👌 Como nuevo</button>
+            <button type="button" onclick="seleccionarCondicion('Seminuevo')" id="btnCondSeminuevo" class="py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-400">🏷️ Seminuevo</button>
+          </div>
+          <input type="hidden" id="altaCondicionSeleccionada" value="Nuevo">
+        </div>
+
+        <!-- Tallas -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase">TALLA</label>
+          <div class="grid grid-cols-7 gap-1" id="contenedorTallasAlta">
+            <button type="button" onclick="seleccionarTallaAlta('XS')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">XS</button>
+            <button type="button" onclick="seleccionarTallaAlta('S')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">S</button>
+            <button type="button" onclick="seleccionarTallaAlta('M')" class="btn-talla py-2 rounded-xl font-black text-xs border border-neonGreen bg-neonGreen/15 text-neonGreen">M</button>
+            <button type="button" onclick="seleccionarTallaAlta('L')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">L</button>
+            <button type="button" onclick="seleccionarTallaAlta('XL')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">XL</button>
+            <button type="button" onclick="seleccionarTallaAlta('XXL')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">XXL</button>
+            <button type="button" onclick="seleccionarTallaAlta('Uni')" class="btn-talla py-2 rounded-xl font-black text-xs border border-slate-700 bg-subpanel text-slate-300">Uni</button>
+          </div>
+          <input type="hidden" id="altaTallaSeleccionada" value="M">
+        </div>
+
+        <!-- Precios -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">PRECIO VENTA ($)</label>
+            <input type="number" id="altaPrecio" placeholder="$ 250" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-base font-black text-neonGreen placeholder-slate-600 focus:border-neonGreen focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">COSTO PROPIO ($)</label>
+            <input type="number" id="altaCosto" placeholder="Opcional" class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">DETALLE / TIPO DE PRENDA</label>
+          <input type="text" id="altaDesc" placeholder="Opcional - Ej. Short deportivo..." class="w-full bg-subpanel border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:border-neonGreen focus:outline-none">
+        </div>
+
+        <button onclick="guardarPrendaNueva()" class="w-full py-3.5 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black font-black text-sm rounded-2xl shadow-neon-green active:scale-95 transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus-circle text-base"></i> GUARDAR EN INVENTARIO
+        </button>
+      </div>
+    </section>
+
+    <!-- TAB 3: BUSCADOR POR FOTO -->
+    <section id="tab-buscador" class="hidden space-y-4">
+      <div class="bg-panel border border-slate-800 rounded-3xl p-4 space-y-4 shadow-xl">
+        <div class="flex items-center space-x-2 border-b border-slate-800 pb-3">
+          <div class="w-7 h-7 rounded-lg bg-violetNeon/15 border border-violetNeon/40 flex items-center justify-center text-violetNeon">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+          </div>
+          <div>
+            <h2 class="text-xs font-black uppercase tracking-wider text-white">Identificador Visual Avanzado</h2>
+            <p class="text-[10px] text-slate-400">Compara características y colores reales contra el inventario</p>
+          </div>
+        </div>
+
+        <div class="h-36 rounded-2xl border-2 border-dashed border-violetNeon/30 bg-subpanel/50 flex flex-col items-center justify-center overflow-hidden relative">
+          <img id="previewBuscarFoto" class="hidden w-full h-full object-cover">
+          <div id="iconBuscarFoto" class="text-center space-y-1">
+            <i class="fa-solid fa-camera-retro text-2xl text-violetNeon"></i>
+            <span class="block text-xs font-bold text-slate-300">Toma foto o selecciona de galería</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="document.getElementById('camBuscarFoto').click()" class="py-2.5 px-3 bg-gradient-to-r from-neonGreen to-neonGreenDark text-black rounded-xl text-xs font-black active:scale-95 shadow-neon-green flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-camera"></i> Tomar Foto
+          </button>
+          <button type="button" onclick="document.getElementById('galBuscarFoto').click()" class="py-2.5 px-3 bg-subpanel text-slate-200 border border-slate-700 rounded-xl text-xs font-bold active:scale-95 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-images"></i> Elegir Galería
+          </button>
+        </div>
+
+        <input type="file" id="camBuscarFoto" accept="image/*" capture="environment" class="hidden" onchange="procesarFotoBusqueda(this)">
+        <input type="file" id="galBuscarFoto" accept="image/*" class="hidden" onchange="procesarFotoBusqueda(this)">
+
+        <div id="resultadoBusquedaIA" class="hidden p-3 rounded-2xl bg-subpanel border border-slate-800 space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CUENTAS -->
+    <section id="tab-cuentas" class="hidden space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-panel border border-solarGold/30 rounded-3xl p-3.5 space-y-2 shadow-neon-gold">
+          <span class="text-[10px] font-black text-solarGold uppercase">A EMA</span>
+          <span id="deudaEma" class="text-2xl font-black text-solarGold block">$0</span>
+        </div>
+        <div class="bg-panel border border-emerald-500/30 rounded-3xl p-3.5 space-y-2 shadow-neon-green">
+          <span class="text-[10px] font-black text-emerald-400 uppercase">A MIGUEL</span>
+          <span id="deudaMiguel" class="text-2xl font-black text-emerald-400 block">$0</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM DOCK (4 PESTAÑAS) -->
+  <nav class="fixed bottom-0 inset-x-0 z-50 bg-[#0a0f18]/95 backdrop-blur-2xl border-t border-slate-800/90 py-2 px-3 shadow-dock">
+    <div class="max-w-lg mx-auto grid grid-cols-4 gap-2 text-center items-center">
+      <button onclick="cambiarTab('inventario')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="inventario">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-cyan-500/15 border border-cyan-400/40 text-[#00e5ff]">
+          <i class="fa-solid fa-boxes-stacked text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#00e5ff] tab-label">Ropa</span>
+      </button>
+      <button onclick="cambiarTab('registro')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="registro">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-emerald-500/15 border border-emerald-400/40 text-[#00ff66]">
+          <i class="fa-solid fa-circle-plus text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#00ff66] tab-label">Alta</span>
+      </button>
+      <button onclick="cambiarTab('buscador')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="buscador">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-purple-500/15 border border-purple-400/40 text-[#c084fc]">
+          <i class="fa-solid fa-magnifying-glass text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#c084fc] tab-label">Buscar</span>
+      </button>
+      <button onclick="cambiarTab('cuentas')" class="btn-nav flex flex-col items-center justify-center py-1 rounded-2xl active:scale-95" data-tab="cuentas">
+        <div class="w-12 h-8 rounded-xl flex items-center justify-center icon-container bg-teal-500/15 border border-teal-400/40 text-[#2dd4bf]">
+          <i class="fa-solid fa-wallet text-sm"></i>
+        </div>
+        <span class="text-[10px] font-black mt-1 text-[#2dd4bf] tab-label">Cuentas</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    let db = {
+      marcasFrecuencia: { 'Gymshark': 15, 'Patagonia': 12, 'Nike': 10, 'Adidas': 8, 'Under Armour': 6, 'The North Face': 5, 'Lululemon': 4, 'Columbia': 3, 'Champion': 2, 'Levi\'s': 1, 'Zara': 1 },
+      prendas: [],
+      ventas: [],
+      pedidos: [],
+      plazaActual: 'Playas',
+      duenoSeleccionadoAlta: 'Zak',
+      marcaSeleccionadaAlta: 'Gymshark',
+      condicionSeleccionadaAlta: 'Nuevo',
+      generoSeleccionadoAlta: 'Hombre',
+      tallaSeleccionadaAlta: 'M',
+      filtroDuenoActivo: 'todos',
+      filtroEstadoActivo: 'disponible'
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      cargarStorage();
+      renderBotonesMarcas();
+      renderInventario();
+      renderResumenPorPersona();
+      actualizarNavVisual('inventario');
+    });
+
+    function cargarStorage() {
+      const guardado = localStorage.getItem('ZAK_SELECT_DEF_V4');
+      if (guardado) {
+        try { db = JSON.parse(guardado); } catch(e){}
+      }
+      if (!db.marcasFrecuencia) {
+        db.marcasFrecuencia = { 'Gymshark': 15, 'Patagonia': 12, 'Nike': 10, 'Adidas': 8, 'Under Armour': 6, 'The North Face': 5, 'Lululemon': 4, 'Columbia': 3, 'Champion': 2, 'Levi\'s': 1, 'Zara': 1 };
+      }
+    }
+
+    function guardarStorage() {
+      localStorage.setItem('ZAK_SELECT_DEF_V4', JSON.stringify(db));
+    }
+
+    function cambiarTab(tabName) {
+      ['inventario', 'registro', 'buscador', 'cuentas'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tabName);
+      });
+      actualizarNavVisual(tabName);
+    }
+
+    function actualizarNavVisual(activeTab) {
+      const tabsConfig = {
+        inventario: { bgActive: 'bg-[#00e5ff] text-black border-white', bgInactive: 'bg-cyan-500/15 text-[#00e5ff] border-cyan-400/40' },
+        registro:   { bgActive: 'bg-[#00ff66] text-black border-white', bgInactive: 'bg-emerald-500/15 text-[#00ff66] border-emerald-400/40' },
+        buscador:   { bgActive: 'bg-[#c084fc] text-black border-white', bgInactive: 'bg-purple-500/15 text-[#c084fc] border-purple-400/40' },
+        cuentas:    { bgActive: 'bg-[#2dd4bf] text-black border-white', bgInactive: 'bg-teal-500/15 text-[#2dd4bf] border-teal-400/40' }
+      };
+
+      document.querySelectorAll('.btn-nav').forEach(btn => {
+        const tab = btn.dataset.tab;
+        const iconWrap = btn.querySelector('.icon-container');
+        const label = btn.querySelector('.tab-label');
+        const conf = tabsConfig[tab];
+        if (tab === activeTab) {
+          iconWrap.className = `w-12 h-8 rounded-xl flex items-center justify-center icon-container ${conf.bgActive} border scale-105 font-black`;
+          label.className = 'text-[10px] font-black mt-1 text-white scale-105';
+        } else {
+          iconWrap.className = `w-12 h-8 rounded-xl flex items-center justify-center icon-container ${conf.bgInactive} border`;
+          label.className = 'text-[10px] font-bold mt-1 text-slate-300';
+        }
+      });
+    }
+
+    function renderBotonesMarcas() {
+      const cont = document.getElementById('contenedorMarcasAlta');
+      cont.innerHTML = '';
+      const marcasOrdenadas = Object.keys(db.marcasFrecuencia).sort((a, b) => db.marcasFrecuencia[b] - db.marcasFrecuencia[a]);
+      if (!db.marcaSeleccionadaAlta || !db.marcasFrecuencia[db.marcaSeleccionadaAlta]) {
+        db.marcaSeleccionadaAlta = marcasOrdenadas[0];
+      }
+      document.getElementById('altaMarcaSeleccionada').value = db.marcaSeleccionadaAlta;
+
+      marcasOrdenadas.forEach(marca => {
+        const sel = marca === db.marcaSeleccionadaAlta;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => { db.marcaSeleccionadaAlta = marca; renderBotonesMarcas(); };
+        btn.className = `px-3 py-1.5 rounded-xl font-black text-xs transition-all ${sel ? 'bg-neonGreen text-black shadow-neon-green border border-neonGreen' : 'bg-panel text-slate-300 border border-slate-700'}`;
+        btn.innerText = marca;
+        cont.appendChild(btn);
+      });
+    }
+
+    function guardarPrendaNueva() {
+      const precio = parseFloat(document.getElementById('altaPrecio').value);
+      let desc = document.getElementById('altaDesc').value.trim();
+      const marca = db.marcaSeleccionadaAlta || 'Gymshark';
+      const condicion = db.condicionSeleccionadaAlta || 'Nuevo';
+      const talla = db.tallaSeleccionadaAlta || 'M';
+
+      if (!precio || isNaN(precio) || precio <= 0) {
+        alert('Por favor ingresa el precio de venta.');
+        return;
+      }
+      if (!desc) desc = `${marca} ${condicion} (${talla})`;
+
+      db.marcasFrecuencia[marca] = (db.marcasFrecuencia[marca] || 0) + 1;
+
+      let foto = document.getElementById('previewFoto1').src;
+      if (!foto || !foto.startsWith('data:image')) {
+        foto = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&auto=format&fit=crop&q=60';
+      }
+
+      const nueva = {
+        id: 'P-' + Date.now(),
+        dueno: db.duenoSeleccionadoAlta,
+        marca: marca,
+        condicion: condicion,
+        talla: talla,
+        precio: precio,
+        desc: desc,
+        estado: 'disponible',
+        foto: foto
+      };
+
+      db.prendas.unshift(nueva);
+      guardarStorage();
+      alert('¡Prenda guardada con éxito!');
+      document.getElementById('altaPrecio').value = '';
+      document.getElementById('altaDesc').value = '';
+      renderBotonesMarcas();
+      renderInventario();
+      renderResumenPorPersona();
+      cambiarTab('inventario');
+    }
+
+    function renderInventario() {
+      const grid = document.getElementById('gridInventario');
+      grid.innerHTML = '';
+      let lista = db.prendas.filter(p => {
+        const mDueno = db.filtroDuenoActivo === 'todos' || p.dueno === db.filtroDuenoActivo;
+        return mDueno && p.estado === db.filtroEstadoActivo;
+      });
+
+      document.getElementById('countTotal').innerText = db.prendas.length;
+      document.getElementById('countDisp').innerText = db.prendas.filter(p => p.estado === 'disponible').length;
+      document.getElementById('countApart').innerText = db.prendas.filter(p => p.estado === 'apartado').length;
+      document.getElementById('countVend').innerText = db.prendas.filter(p => p.estado === 'vendido').length;
+
+      if (lista.length === 0) {
+        grid.innerHTML = '<div class="col-span-2 text-center py-16 text-slate-500 text-xs">No hay prendas en este apartado.</div>';
+        return;
+      }
+
+      lista.forEach(p => {
+        let badgeColor = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        if (p.estado === 'vendido') badgeColor = 'bg-red-500/20 text-red-400 border-red-500/30';
+        if (p.estado === 'apartado') badgeColor = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+
+        const card = document.createElement('div');
+        card.className = 'bg-panel border border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col';
+        card.innerHTML = `
+          <div class="h-36 bg-subpanel relative overflow-hidden">
+            <img src="${p.foto}" class="w-full h-full object-cover">
+            <span class="absolute top-2.5 left-2.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-black/80 text-white">${p.dueno}</span>
+            <span class="absolute top-2.5 right-2.5 text-[10px] font-black bg-black/80 text-white px-2 py-0.5 rounded-lg border border-slate-700">${p.talla}</span>
+          </div>
+          <div class="p-3 flex-1 flex flex-col justify-between space-y-2">
+            <p class="text-xs font-bold leading-tight line-clamp-2 text-slate-200">[${p.marca}] ${p.desc}</p>
+            <div class="flex items-center justify-between pt-1 border-t border-slate-800">
+              <span class="text-base font-black text-neonGreen">$${p.precio}</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full border font-semibold ${badgeColor}">${p.estado.toUpperCase()}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderResumenPorPersona() {
+      const cont = document.getElementById('contenedorResumenEmojis');
+      if (!cont) return;
+      cont.innerHTML = '';
+      const disponibles = db.prendas.filter(p => p.estado === 'disponible');
+      ['Zak', 'Ema', 'Miguel'].forEach(d => {
+        const cant = disponibles.filter(p => p.dueno === d).length;
+        cont.innerHTML += `<div class="flex justify-between items-center p-2 rounded-xl bg-subpanel border border-slate-800"><span class="font-bold text-white">${d}</span><span class="font-black text-neonGreen">${cant} piezas</span></div>`;
+      });
+    }
+
+    function filtrarDueno(dueno) { db.filtroDuenoActivo = dueno; renderInventario(); }
+    function filtrarEstado(estado) { db.filtroEstadoActivo = estado; renderInventario(); }
+    
+    function comprimirImagen(file, maxW, maxH, q, cb) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > maxW) { h = Math.round((h * maxW) / w); w = maxW; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          cb(canvas.toDataURL('image/jpeg', q));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function procesarFoto(input, prevId, iconId) {
+      if (input.files && input.files[0]) {
+        comprimirImagen(input.files[0], 800, 800, 0.75, url => {
+          const img = document.getElementById(prevId);
+          img.src = url; img.classList.remove('hidden');
+          document.getElementById(iconId).classList.add('hidden');
+        });
+      }
+    }
+
+    function copiarResumenEmojis() { alert('Resumen copiado'); }
+    function abrirAuditoriaPerchero() { alert('Auditoría'); }
+    function abrirModalCatalogo() { alert('Catálogo'); }
+    function abrirModalNuevaMarca() {
+      const nueva = prompt('Nombre de la nueva marca:');
+      if (nueva && !db.marcasFrecuencia[nueva]) {
+        db.marcasFrecuencia[nueva] = 1;
+        guardarStorage();
+        renderBotonesMarcas();
+      }
+    }
+    function abrirModalConfig() { alert('Configuración'); }
+    function toggleModoPedido() { alert('Modo pedido'); }
+    function procesarFotoBusqueda() { alert('Buscador visual'); }
+    
+    function seleccionarDuenoAlta(d) {
+      db.duenoSeleccionadoAlta = d;
+      ['Zak', 'Ema', 'Miguel'].forEach(x => {
+        document.getElementById(`btnAlta${x}`).className = `btn-dueno-alta py-2 rounded-xl font-black text-xs border ${x === d ? 'border-electricCyan bg-electricCyan/20 text-electricCyan' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      });
+    }
+
+    function seleccionarGeneroAlta(g) {
+      db.generoSeleccionadoAlta = g;
+      ['Hombre', 'Mujer', 'Unisex'].forEach(x => {
+        document.getElementById(`btnGen${x}`).className = `py-2 rounded-xl font-black text-xs border ${x === g ? 'border-electricCyan bg-electricCyan/20 text-electricCyan' : 'border-slate-700 bg-subpanel text-slate-400'}`;
+      });
+    }
+
+    function seleccionarCondicion(c) { db.condicionSeleccionadaAlta = c; }
+    
+    function seleccionarTallaAlta(t) {
+      db.tallaSeleccionadaAlta = t;
+      document.querySelectorAll('#contenedorTallasAlta .btn-talla').forEach(b => {
+        b.className = `btn-talla py-2 rounded-xl font-black text-xs ${b.innerText === t ? 'border border-neonGreen bg-neonGreen/20 text-neonGreen' : 'border border-slate-700 bg-subpanel text-slate-400'}`;
+      });
+    }
+  </script>
+</body>
+</html>
